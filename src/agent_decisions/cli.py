@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .journal import Journal
-from .models import MentalState, Outcome, Stakes
+from .models import MentalState, Outcome, ReasonType, Stakes
 
 console = Console()
 
@@ -57,6 +57,7 @@ def main(ctx: click.Context, directory: str) -> None:
 @click.option("--related", multiple=True, help="Related decision IDs (K-line hierarchy)")
 @click.option("--mental-state", "-m", type=click.Choice(["deliberate", "reactive", "exploratory", "habitual", "pressured"]), help="Mental state when deciding")
 @click.option("--teaching-notes", help="Notes for future self")
+@click.option("--reason", "-R", multiple=True, help="Reason supporting decision: 'type:text' or 'type:text:strength' (e.g., 'pattern:Similar to X which worked:0.8')")
 @click.pass_context
 def log(
     ctx: click.Context,
@@ -71,9 +72,28 @@ def log(
     related: tuple[str, ...],
     mental_state: Optional[str],
     teaching_notes: Optional[str],
+    reason: tuple[str, ...],
 ) -> None:
     """Log a new decision."""
     journal: Journal = ctx.obj["journal"]
+    
+    # Parse reasons
+    parsed_reasons = []
+    for r in reason:
+        parts = r.split(":", 2)
+        if len(parts) >= 2:
+            rtype = parts[0]
+            rtext = parts[1]
+            rstrength = float(parts[2]) if len(parts) > 2 else 0.5
+            try:
+                parsed_reasons.append({
+                    "type": ReasonType(rtype),
+                    "text": rtext,
+                    "strength": rstrength,
+                })
+            except ValueError:
+                valid_types = ", ".join([t.value for t in ReasonType])
+                console.print(f"[yellow]Warning: Unknown reason type '{rtype}'. Valid: {valid_types}[/yellow]")
     
     review_days = parse_duration(review_in) if review_in else None
     
@@ -89,6 +109,7 @@ def log(
         related_decisions=list(related),
         mental_state=MentalState(mental_state) if mental_state else None,
         teaching_notes=teaching_notes,
+        reasons=parsed_reasons,
     )
     
     console.print(f"[green]✓[/green] Decision logged: [bold]{decision.id}[/bold]")

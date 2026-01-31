@@ -10,7 +10,7 @@ from typing import Optional
 
 import yaml
 
-from .models import Decision, MentalState, Outcome, Stakes, Status
+from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes, Status
 from .stats import Stats, calculate_stats
 
 
@@ -105,6 +105,7 @@ class Journal:
         related_decisions: Optional[list[str]] = None,
         mental_state: Optional[MentalState | str] = None,
         teaching_notes: Optional[str] = None,
+        reasons: Optional[list[dict]] = None,
     ) -> Decision:
         """
         Log a new decision.
@@ -121,6 +122,7 @@ class Journal:
             related_decisions: IDs of related past decisions
             mental_state: How the decision was made (deliberate, reactive, etc.)
             teaching_notes: Notes for future self
+            reasons: List of reasons supporting the decision (Minsky Ch 18)
         
         Returns:
             The created Decision object
@@ -129,6 +131,16 @@ class Journal:
             stakes = Stakes(stakes)
         if isinstance(mental_state, str):
             mental_state = MentalState(mental_state)
+        
+        # Parse reasons
+        parsed_reasons = []
+        if reasons:
+            for r in reasons:
+                parsed_reasons.append(Reason(
+                    reason_type=r.get("type", ReasonType.ANALYSIS),
+                    text=r["text"],
+                    strength=r.get("strength", 0.5),
+                ))
         
         decision = Decision(
             summary=summary,
@@ -141,6 +153,7 @@ class Journal:
             related_decisions=related_decisions or [],
             mental_state=mental_state,
             teaching_notes=teaching_notes,
+            reasons=parsed_reasons,
         )
         
         if review_days:

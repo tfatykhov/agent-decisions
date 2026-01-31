@@ -49,6 +49,58 @@ class MentalState(str, Enum):
     PRESSURED = "pressured"        # Under time/resource constraints
 
 
+class ReasonType(str, Enum):
+    """
+    Type of reasoning used to support a decision.
+    
+    From Minsky Ch 18: "The more reasons we can find in favor of a 
+    particular decision, the more confidence we can have in it."
+    
+    Tracking reason types helps calibration: which reasoning styles 
+    are most reliable for you?
+    """
+    PATTERN = "pattern"            # Similar to past experience that worked
+    ANALYSIS = "analysis"          # First principles reasoning
+    AUTHORITY = "authority"        # Expert/source recommends this
+    INTUITION = "intuition"        # Gut feeling, can't fully articulate
+    EMPIRICAL = "empirical"        # Based on data/evidence
+    ANALOGY = "analogy"            # Similar to X, so should work here
+    ELIMINATION = "elimination"    # Other options ruled out
+    CONSTRAINT = "constraint"      # Required by external factors
+
+
+@dataclass
+class Reason:
+    """
+    A single reason supporting a decision.
+    
+    Multiple independent reasons = stronger argument (parallel bundles).
+    """
+    reason_type: ReasonType
+    text: str
+    strength: float = 0.5  # 0.0 = weak, 1.0 = strong
+    
+    def __post_init__(self):
+        if isinstance(self.reason_type, str):
+            self.reason_type = ReasonType(self.reason_type)
+        self.strength = max(0.0, min(1.0, float(self.strength)))
+    
+    def to_dict(self) -> dict:
+        return {
+            "type": self.reason_type.value,
+            "text": self.text,
+            "strength": self.strength,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "Reason":
+        return cls(
+            reason_type=data.get("type", data.get("reason_type", "analysis")),
+            text=data["text"],
+            strength=data.get("strength", 0.5),
+        )
+
+
 @dataclass
 class Decision:
     """
@@ -96,6 +148,9 @@ class Decision:
     related_decisions: list[str] = field(default_factory=list)
     mental_state: Optional[MentalState] = None
     teaching_notes: Optional[str] = None
+    
+    # Multiple reasons (Minsky Ch 18: strength from multitude)
+    reasons: list[Reason] = field(default_factory=list)
     
     # Post-review fields
     outcome: Optional[Outcome] = None
@@ -158,6 +213,33 @@ class Decision:
         if context_item not in self.active_context:
             self.active_context.append(context_item)
     
+    def add_reason(
+        self, 
+        reason_type: ReasonType | str, 
+        text: str, 
+        strength: float = 0.5
+    ) -> None:
+        """
+        Add a reason supporting this decision.
+        
+        Multiple independent reasons = stronger argument (parallel bundles).
+        """
+        if isinstance(reason_type, str):
+            reason_type = ReasonType(reason_type)
+        self.reasons.append(Reason(reason_type=reason_type, text=text, strength=strength))
+    
+    @property
+    def reason_types_used(self) -> list[str]:
+        """Get list of unique reason types used."""
+        return list(set(r.reason_type.value for r in self.reasons))
+    
+    @property
+    def average_reason_strength(self) -> Optional[float]:
+        """Get average strength of all reasons."""
+        if not self.reasons:
+            return None
+        return sum(r.strength for r in self.reasons) / len(self.reasons)
+    
     def review(
         self,
         outcome: Outcome | str,
@@ -199,6 +281,8 @@ class Decision:
             "related_decisions": self.related_decisions,
             "mental_state": self.mental_state.value if self.mental_state else None,
             "teaching_notes": self.teaching_notes,
+            # Reasons (Minsky Ch 18)
+            "reasons": [r.to_dict() for r in self.reasons],
             # Review fields
             "outcome": self.outcome.value if self.outcome else None,
             "actual_result": self.actual_result,
@@ -216,6 +300,10 @@ class Decision:
             data["review_date"] = datetime.fromisoformat(data["review_date"])
         if isinstance(data.get("reviewed_at"), str):
             data["reviewed_at"] = datetime.fromisoformat(data["reviewed_at"])
+        
+        # Parse reasons
+        if "reasons" in data and data["reasons"]:
+            data["reasons"] = [Reason.from_dict(r) for r in data["reasons"]]
         
         return cls(**data)
     
@@ -239,6 +327,12 @@ class Decision:
         
         if self.teaching_notes:
             lines.extend(["", f"**Teaching Notes:** {self.teaching_notes}"])
+        
+        if self.reasons:
+            lines.extend(["", "**Reasons (parallel support):**"])
+            for r in self.reasons:
+                strength_bar = "●" * int(r.strength * 5) + "○" * (5 - int(r.strength * 5))
+                lines.append(f"- [{r.reason_type.value}] {r.text} ({strength_bar})")
         
         if self.active_context:
             lines.extend(["", "**Active Context (K-Lines):**"])

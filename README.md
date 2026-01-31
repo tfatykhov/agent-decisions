@@ -2,7 +2,7 @@
 
 A lightweight decision journal for AI agents. Track decisions, set review dates, measure accuracy over time.
 
-**v0.2.0: Now with K-Lines!** Inspired by Minsky's *Society of Mind* — store active context, link related decisions, and leave notes for your future self.
+**v0.3.0: Multiple Reasons!** Inspired by Minsky's *Society of Mind* Chapter 18 — "The more reasons we can find in favor of a decision, the more confidence we can have in it."
 
 [![Tests](https://img.shields.io/badge/tests-15%20passing-brightgreen)](https://github.com/tfatykhov/agent-decisions)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://www.python.org)
@@ -19,6 +19,7 @@ Agents make decisions constantly but rarely track outcomes. This tool helps you:
 - **Store K-lines** — what tools/files were active when you decided (Society of Mind)
 - **Link related decisions** — build a hierarchy of connected choices
 - **Leave teaching notes** — help your future self understand past reasoning
+- **Record multiple reasons** — parallel bundles of support for robustness (v0.3.0)
 
 Inspired by [Membria's Decision Black Box](https://membria.ai) concept and Minsky's [Society of Mind](http://aurellem.org/society-of-mind/).
 
@@ -192,8 +193,25 @@ decide log "Your decision summary" \
   --active-context "API docs"\ # Optional: K-lines (tools/files active when deciding)
   --active-context "settings.json" \
   --related abc123 \           # Optional: link to related decision IDs
-  --teaching-notes "For future self: check X before Y"  # Optional
+  --teaching-notes "For future self: check X before Y" \  # Optional
+  --reason "pattern:Similar to past approach that worked:0.8" \  # v0.3.0: multiple reasons
+  --reason "empirical:Tests show 99% success rate:0.9"
 ```
+
+### Reason Types (v0.3.0)
+
+| Type | Description |
+|------|-------------|
+| `pattern` | Similar to past experience that worked |
+| `analysis` | First principles reasoning |
+| `authority` | Expert/source recommends this |
+| `intuition` | Gut feeling, can't fully articulate |
+| `empirical` | Based on data/evidence |
+| `analogy` | Similar to X, so should work here |
+| `elimination` | Other options ruled out |
+| `constraint` | Required by external factors |
+
+Multiple independent reasons = stronger argument (Minsky: "parallel bundles").
 
 ### `decide list`
 
