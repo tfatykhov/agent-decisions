@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .journal import Journal
-from .models import Outcome, Stakes
+from .models import MentalState, Outcome, Stakes
 
 console = Console()
 
@@ -53,6 +53,10 @@ def main(ctx: click.Context, directory: str) -> None:
 @click.option("--context", help="Additional context")
 @click.option("--alternative", "-a", multiple=True, help="Alternative options considered")
 @click.option("--review-in", "-r", help="Review in N days/weeks/months (e.g., '7d', '2w', '1m')")
+@click.option("--active-context", "-k", multiple=True, help="Active context items (K-lines: tools, files, APIs)")
+@click.option("--related", multiple=True, help="Related decision IDs (K-line hierarchy)")
+@click.option("--mental-state", "-m", type=click.Choice(["deliberate", "reactive", "exploratory", "habitual", "pressured"]), help="Mental state when deciding")
+@click.option("--teaching-notes", help="Notes for future self")
 @click.pass_context
 def log(
     ctx: click.Context,
@@ -63,6 +67,10 @@ def log(
     context: Optional[str],
     alternative: tuple[str, ...],
     review_in: Optional[str],
+    active_context: tuple[str, ...],
+    related: tuple[str, ...],
+    mental_state: Optional[str],
+    teaching_notes: Optional[str],
 ) -> None:
     """Log a new decision."""
     journal: Journal = ctx.obj["journal"]
@@ -77,6 +85,10 @@ def log(
         context=context,
         alternatives=list(alternative),
         review_days=review_days,
+        active_context=list(active_context),
+        related_decisions=list(related),
+        mental_state=MentalState(mental_state) if mental_state else None,
+        teaching_notes=teaching_notes,
     )
     
     console.print(f"[green]✓[/green] Decision logged: [bold]{decision.id}[/bold]")

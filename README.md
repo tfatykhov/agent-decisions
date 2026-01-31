@@ -2,6 +2,8 @@
 
 A lightweight decision journal for AI agents. Track decisions, set review dates, measure accuracy over time.
 
+**v0.2.0: Now with K-Lines!** Inspired by Minsky's *Society of Mind* — store active context, link related decisions, and leave notes for your future self.
+
 [![Tests](https://img.shields.io/badge/tests-15%20passing-brightgreen)](https://github.com/tfatykhov/agent-decisions)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -14,8 +16,11 @@ Agents make decisions constantly but rarely track outcomes. This tool helps you:
 - **Set review dates** to check if you were right
 - **Calculate accuracy** using Brier scores
 - **Learn from patterns** in your decision-making
+- **Store K-lines** — what tools/files were active when you decided (Society of Mind)
+- **Link related decisions** — build a hierarchy of connected choices
+- **Leave teaching notes** — help your future self understand past reasoning
 
-Inspired by [Membria's Decision Black Box](https://membria.ai) concept.
+Inspired by [Membria's Decision Black Box](https://membria.ai) concept and Minsky's [Society of Mind](http://aurellem.org/society-of-mind/).
 
 ## Installation
 
@@ -182,7 +187,12 @@ decide log "Your decision summary" \
   --context "Additional info"\ # Optional
   --alternative "Option A" \   # Optional: can repeat
   --alternative "Option B" \
-  --review-in 7d               # Optional: 7d, 2w, 1m
+  --review-in 7d \             # Optional: 7d, 2w, 1m
+  --mental-state deliberate \  # Optional: deliberate|reactive|exploratory|habitual|pressured
+  --active-context "API docs"\ # Optional: K-lines (tools/files active when deciding)
+  --active-context "settings.json" \
+  --related abc123 \           # Optional: link to related decision IDs
+  --teaching-notes "For future self: check X before Y"  # Optional
 ```
 
 ### `decide list`

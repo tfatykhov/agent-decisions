@@ -10,7 +10,7 @@ from typing import Optional
 
 import yaml
 
-from .models import Decision, Outcome, Stakes, Status
+from .models import Decision, MentalState, Outcome, Stakes, Status
 from .stats import Stats, calculate_stats
 
 
@@ -101,6 +101,10 @@ class Journal:
         context: Optional[str] = None,
         alternatives: Optional[list[str]] = None,
         review_days: Optional[int] = None,
+        active_context: Optional[list[str]] = None,
+        related_decisions: Optional[list[str]] = None,
+        mental_state: Optional[MentalState | str] = None,
+        teaching_notes: Optional[str] = None,
     ) -> Decision:
         """
         Log a new decision.
@@ -113,12 +117,18 @@ class Journal:
             context: Additional context
             alternatives: Other options considered
             review_days: Days until review (sets review_date)
+            active_context: K-lines - tools/files/APIs active when deciding
+            related_decisions: IDs of related past decisions
+            mental_state: How the decision was made (deliberate, reactive, etc.)
+            teaching_notes: Notes for future self
         
         Returns:
             The created Decision object
         """
         if isinstance(stakes, str):
             stakes = Stakes(stakes)
+        if isinstance(mental_state, str):
+            mental_state = MentalState(mental_state)
         
         decision = Decision(
             summary=summary,
@@ -127,6 +137,10 @@ class Journal:
             stakes=stakes,
             context=context,
             alternatives=alternatives or [],
+            active_context=active_context or [],
+            related_decisions=related_decisions or [],
+            mental_state=mental_state,
+            teaching_notes=teaching_notes,
         )
         
         if review_days:

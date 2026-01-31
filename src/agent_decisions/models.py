@@ -1,5 +1,11 @@
 """
 Core data models for decision tracking.
+
+Inspired by Minsky's Society of Mind:
+- active_context: K-lines - what agents/tools were active when deciding
+- related_decisions: Connect new K-lines to old ones (societies of memories)
+- mental_state: Reconstruction hints for future self
+- teaching_notes: What past-self wants future-self to know
 """
 
 from dataclasses import dataclass, field
@@ -31,12 +37,24 @@ class Status(str, Enum):
     REVIEWED = "reviewed"
 
 
+class MentalState(str, Enum):
+    """
+    Mental state when making the decision.
+    Helps future-self reconstruct the context (Minsky: reconstruction, not retrieval).
+    """
+    DELIBERATE = "deliberate"      # Careful, reasoned analysis
+    REACTIVE = "reactive"          # Quick response to situation
+    EXPLORATORY = "exploratory"    # Trying something new, uncertain
+    HABITUAL = "habitual"          # Standard practice, routine
+    PRESSURED = "pressured"        # Under time/resource constraints
+
+
 @dataclass
 class Decision:
     """
     A single decision with metadata for tracking and review.
     
-    Attributes:
+    Core Attributes:
         id: Unique identifier for the decision
         timestamp: When the decision was made
         summary: Brief description of the decision
@@ -47,6 +65,14 @@ class Decision:
         alternatives: Other options that were considered
         review_date: When to review the outcome
         status: Current status (pending/reviewed)
+    
+    K-Line Attributes (Society of Mind):
+        active_context: What tools/files/APIs were active when deciding
+        related_decisions: IDs of related past decisions (K-line hierarchy)
+        mental_state: How the decision was made (reconstruction hint)
+        teaching_notes: What past-self wants future-self to know
+    
+    Review Attributes:
         outcome: Result after review
         actual_result: What actually happened
         lessons: What was learned
@@ -64,6 +90,12 @@ class Decision:
     alternatives: list[str] = field(default_factory=list)
     review_date: Optional[datetime] = None
     status: Status = Status.PENDING
+    
+    # K-Line fields (Society of Mind)
+    active_context: list[str] = field(default_factory=list)
+    related_decisions: list[str] = field(default_factory=list)
+    mental_state: Optional[MentalState] = None
+    teaching_notes: Optional[str] = None
     
     # Post-review fields
     outcome: Optional[Outcome] = None
@@ -83,6 +115,8 @@ class Decision:
             self.status = Status(self.status)
         if isinstance(self.outcome, str):
             self.outcome = Outcome(self.outcome)
+        if isinstance(self.mental_state, str):
+            self.mental_state = MentalState(self.mental_state)
     
     @property
     def is_pending(self) -> bool:
@@ -113,6 +147,16 @@ class Decision:
     def set_review_in_days(self, days: int) -> None:
         """Set review date to N days from now."""
         self.review_date = datetime.utcnow() + timedelta(days=days)
+    
+    def link_decision(self, decision_id: str) -> None:
+        """Link this decision to a related past decision (K-line hierarchy)."""
+        if decision_id not in self.related_decisions:
+            self.related_decisions.append(decision_id)
+    
+    def add_context(self, context_item: str) -> None:
+        """Add an active context item (tool, file, API, etc.)."""
+        if context_item not in self.active_context:
+            self.active_context.append(context_item)
     
     def review(
         self,
@@ -150,6 +194,12 @@ class Decision:
             "alternatives": self.alternatives,
             "review_date": self.review_date.isoformat() if self.review_date else None,
             "status": self.status.value,
+            # K-Line fields
+            "active_context": self.active_context,
+            "related_decisions": self.related_decisions,
+            "mental_state": self.mental_state.value if self.mental_state else None,
+            "teaching_notes": self.teaching_notes,
+            # Review fields
             "outcome": self.outcome.value if self.outcome else None,
             "actual_result": self.actual_result,
             "lessons": self.lessons,
@@ -181,13 +231,27 @@ class Decision:
             f"- **Stakes:** {self.stakes.value}",
         ]
         
+        if self.mental_state:
+            lines.append(f"- **Mental State:** {self.mental_state.value}")
+        
         if self.context:
             lines.extend(["", f"**Context:** {self.context}"])
+        
+        if self.teaching_notes:
+            lines.extend(["", f"**Teaching Notes:** {self.teaching_notes}"])
+        
+        if self.active_context:
+            lines.extend(["", "**Active Context (K-Lines):**"])
+            for ctx in self.active_context:
+                lines.append(f"- {ctx}")
         
         if self.alternatives:
             lines.extend(["", "**Alternatives considered:**"])
             for alt in self.alternatives:
                 lines.append(f"- {alt}")
+        
+        if self.related_decisions:
+            lines.extend(["", f"**Related Decisions:** {', '.join(self.related_decisions)}"])
         
         if self.review_date:
             lines.append(f"- **Review Date:** {self.review_date.strftime('%Y-%m-%d')}")
