@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-decisions"
+version = "0.1.0"
+description = "A lightweight decision journal for AI agents"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "EmersonAI", email = "tfatykhov@gmail.com"}
+]
+keywords = ["ai", "agents", "decisions", "journal", "calibration", "brier-score"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+decide = "agent_decisions.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tfatykhov/agent-decisions"
+Repository = "https://github.com/tfatykhov/agent-decisions"
+Issues = "https://github.com/tfatykhov/agent-decisions/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "W"]
