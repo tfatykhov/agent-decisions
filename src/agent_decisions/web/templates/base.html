@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Decision Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">📦 Decision Black Box</a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Dashboard</a></li>
+            <li><a href="{{ url_for('decision_list') }}" {% if request.endpoint == 'decision_list' %}class="active"{% endif %}>Decisions</a></li>
+            <li><a href="{{ url_for('plots_page') }}" {% if request.endpoint == 'plots_page' %}class="active"{% endif %}>Plots</a></li>
+            <li><a href="{{ url_for('stats_page') }}" {% if request.endpoint == 'stats_page' %}class="active"{% endif %}>Stats</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>Decision Black Box v0.5.0 — <a href="https://github.com/tfatykhov/agent-decisions">GitHub</a></p>
+    </footer>
+</body>
+</html>

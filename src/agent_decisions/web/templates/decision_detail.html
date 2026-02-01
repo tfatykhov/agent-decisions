@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ decision.summary[:30] }} — Decision Black Box{% endblock %}
+
+{% block content %}
+<div class="decision-detail">
+    <a href="{{ url_for('decision_list') }}" class="back-link">← Back to list</a>
+
+    <h1>{{ decision.summary }}</h1>
+
+    <div class="meta-grid">
+        <div class="meta-item">
+            <label>ID</label>
+            <code>{{ decision.id }}</code>
+        </div>
+        <div class="meta-item">
+            <label>Date</label>
+            {{ decision.timestamp|datefmt }}
+        </div>
+        <div class="meta-item">
+            <label>Confidence</label>
+            <span class="confidence-badge">{{ decision.confidence|pct }}</span>
+        </div>
+        <div class="meta-item">
+            <label>Category</label>
+            <span class="tag">{{ decision.category }}</span>
+        </div>
+        <div class="meta-item">
+            <label>Stakes</label>
+            {{ decision.stakes.value }}
+        </div>
+        {% if decision.mental_state %}
+        <div class="meta-item">
+            <label>Mental State</label>
+            {{ decision.mental_state.value }}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if decision.context %}
+    <div class="section">
+        <h3>Context</h3>
+        <p>{{ decision.context }}</p>
+    </div>
+    {% endif %}
+
+    {% if decision.reasons %}
+    <div class="section">
+        <h3>Reasons</h3>
+        <ul class="reason-list">
+            {% for r in decision.reasons %}
+            <li>
+                <span class="reason-type">[{{ r.reason_type.value }}]</span>
+                {{ r.text }}
+                <span class="reason-strength">({{ "%.0f"|format(r.strength * 100) }}%)</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if decision.alternatives %}
+    <div class="section">
+        <h3>Alternatives Considered</h3>
+        <ul>
+            {% for alt in decision.alternatives %}
+            <li>{{ alt }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if decision.active_context %}
+    <div class="section">
+        <h3>Active Context (K-Lines)</h3>
+        <ul class="kline-list">
+            {% for ctx in decision.active_context %}
+            <li><code>{{ ctx }}</code></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if decision.teaching_notes %}
+    <div class="section">
+        <h3>Teaching Notes</h3>
+        <p class="teaching-notes">{{ decision.teaching_notes }}</p>
+    </div>
+    {% endif %}
+
+    {% if decision.review_date %}
+    <div class="meta-item">
+        <label>Review Date</label>
+        {{ decision.review_date|datefmt("%Y-%m-%d") }}
+    </div>
+    {% endif %}
+
+    <hr>
+
+    {% if decision.outcome %}
+    <div class="outcome-section">
+        <h3>Outcome</h3>
+        <div class="outcome-badge outcome-{{ decision.outcome.value }}">
+            {% if decision.outcome.value == 'success' %}✅ Success
+            {% elif decision.outcome.value == 'failure' %}❌ Failure
+            {% elif decision.outcome.value == 'partial' %}⚡ Partial
+            {% else %}❓ Inconclusive{% endif %}
+        </div>
+
+        {% if decision.actual_result %}
+        <div class="section">
+            <h4>What Happened</h4>
+            <p>{{ decision.actual_result }}</p>
+        </div>
+        {% endif %}
+
+        {% if decision.lessons %}
+        <div class="section">
+            <h4>Lessons Learned</h4>
+            <p>{{ decision.lessons }}</p>
+        </div>
+        {% endif %}
+
+        {% if decision.reviewed_at %}
+        <p class="reviewed-at">Reviewed on {{ decision.reviewed_at|datefmt("%Y-%m-%d") }}</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="review-form">
+        <h3>Record Outcome</h3>
+        <form method="POST" action="{{ url_for('review_decision', decision_id=decision.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-group">
+                <label>Outcome</label>
+                <div class="outcome-buttons">
+                    <button type="submit" name="outcome" value="success" class="btn btn-success">✅ Success</button>
+                    <button type="submit" name="outcome" value="failure" class="btn btn-danger">❌ Failure</button>
+                    <button type="submit" name="outcome" value="partial" class="btn btn-warning">⚡ Partial</button>
+                    <button type="submit" name="outcome" value="inconclusive" class="btn btn-secondary">❓ Inconclusive</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="result">What happened? (optional)</label>
+                <textarea name="result" id="result" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="lessons">Lessons learned (optional)</label>
+                <textarea name="lessons" id="lessons" rows="3"></textarea>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

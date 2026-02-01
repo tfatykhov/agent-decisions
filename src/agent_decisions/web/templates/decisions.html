@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Decisions — Decision Black Box{% endblock %}
+
+{% block content %}
+<div class="decisions-page">
+    <h1>📋 Decisions</h1>
+
+    <div class="filters">
+        <div class="filter-group">
+            <label>Filter:</label>
+            <a href="{{ url_for('decision_list', filter='all') }}" class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+            <a href="{{ url_for('decision_list', filter='pending') }}" class="btn btn-sm {% if current_filter == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}">Pending</a>
+            <a href="{{ url_for('decision_list', filter='due') }}" class="btn btn-sm {% if current_filter == 'due' %}btn-primary{% else %}btn-secondary{% endif %}">Due</a>
+        </div>
+        {% if categories %}
+        <div class="filter-group">
+            <label>Category:</label>
+            <select onchange="window.location.href='{{ url_for('decision_list') }}?category=' + this.value">
+                <option value="">All categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if decisions %}
+    <table class="decision-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Summary</th>
+                <th>Conf</th>
+                <th>Category</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in decisions %}
+            <tr>
+                <td><code>{{ d.id }}</code></td>
+                <td>{{ d.timestamp|datefmt("%Y-%m-%d") }}</td>
+                <td><a href="{{ url_for('decision_detail', decision_id=d.id) }}">{{ d.summary[:40] }}{% if d.summary|length > 40 %}...{% endif %}</a></td>
+                <td>{{ d.confidence|pct }}</td>
+                <td><span class="tag">{{ d.category }}</span></td>
+                <td>
+                    {% if d.outcome and d.outcome.value == 'success' %}
+                        <span class="badge badge-success">✅</span>
+                    {% elif d.outcome and d.outcome.value == 'failure' %}
+                        <span class="badge badge-danger">❌</span>
+                    {% elif d.outcome and d.outcome.value == 'partial' %}
+                        <span class="badge badge-warning">⚡</span>
+                    {% elif d.outcome and d.outcome.value == 'inconclusive' %}
+                        <span class="badge badge-muted">❓</span>
+                    {% elif d.is_due %}
+                        <span class="badge badge-warning">⏰</span>
+                    {% else %}
+                        <span class="badge badge-muted">⏳</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No decisions found matching your filters.</p>
+    {% endif %}
+</div>
+{% endblock %}
