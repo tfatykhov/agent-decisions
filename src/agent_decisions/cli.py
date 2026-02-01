@@ -14,6 +14,15 @@ from rich.table import Table
 from .journal import Journal
 from .models import MentalState, Outcome, ReasonType, Stakes
 
+# Check if matplotlib is actually available (not just plots module)
+PLOTS_AVAILABLE = False
+try:
+    import matplotlib  # noqa: F401
+    from . import plots
+    PLOTS_AVAILABLE = True
+except ImportError:
+    PLOTS_AVAILABLE = False
+
 console = Console()
 
 
@@ -22,17 +31,17 @@ def parse_duration(value: str) -> int:
     match = re.match(r"(\d+)([dwm])", value.lower())
     if not match:
         raise click.BadParameter(f"Invalid duration: {value}. Use format like '7d', '2w', '1m'")
-    
+
     num = int(match.group(1))
     unit = match.group(2)
-    
+
     if unit == "d":
         return num
     elif unit == "w":
         return num * 7
     elif unit == "m":
         return num * 30
-    
+
     return num
 
 
@@ -76,7 +85,7 @@ def log(
 ) -> None:
     """Log a new decision."""
     journal: Journal = ctx.obj["journal"]
-    
+
     # Parse reasons
     parsed_reasons = []
     for r in reason:
@@ -94,9 +103,9 @@ def log(
             except ValueError:
                 valid_types = ", ".join([t.value for t in ReasonType])
                 console.print(f"[yellow]Warning: Unknown reason type '{rtype}'. Valid: {valid_types}[/yellow]")
-    
+
     review_days = parse_duration(review_in) if review_in else None
-    
+
     decision = journal.log(
         summary=summary,
         confidence=confidence,
@@ -111,7 +120,7 @@ def log(
         teaching_notes=teaching_notes,
         reasons=parsed_reasons,
     )
-    
+
     console.print(f"[green]✓[/green] Decision logged: [bold]{decision.id}[/bold]")
     console.print(f"  Summary: {decision.summary}")
     console.print(f"  Confidence: {decision.confidence:.0%}")
@@ -134,7 +143,7 @@ def list_decisions(
 ) -> None:
     """List decisions."""
     journal: Journal = ctx.obj["journal"]
-    
+
     if due:
         decisions = journal.list_due()
     elif pending:
@@ -143,14 +152,14 @@ def list_decisions(
         decisions = journal.list_by_category(category)
     else:
         decisions = journal.list_all()
-    
+
     # Sort by timestamp, newest first
     decisions = sorted(decisions, key=lambda d: d.timestamp, reverse=True)[:limit]
-    
+
     if not decisions:
         console.print("[dim]No decisions found.[/dim]")
         return
-    
+
     table = Table(title="Decisions")
     table.add_column("ID", style="cyan")
     table.add_column("Date")
@@ -158,7 +167,7 @@ def list_decisions(
     table.add_column("Conf", justify="right")
     table.add_column("Status")
     table.add_column("Category", style="dim")
-    
+
     for d in decisions:
         if d.outcome == Outcome.SUCCESS:
             status = "[green]✅ Success[/green]"
@@ -172,7 +181,7 @@ def list_decisions(
             status = "[yellow]⏰ Due![/yellow]"
         else:
             status = "[dim]⏳ Pending[/dim]"
-        
+
         table.add_row(
             d.id,
             d.timestamp.strftime("%Y-%m-%d"),
@@ -181,7 +190,7 @@ def list_decisions(
             status,
             d.category,
         )
-    
+
     console.print(table)
 
 
@@ -200,18 +209,18 @@ def review(
 ) -> None:
     """Review a decision and record the outcome."""
     journal: Journal = ctx.obj["journal"]
-    
+
     decision = journal.review(
         decision_id=decision_id,
         outcome=Outcome(outcome),
         actual_result=result,
         lessons=lessons,
     )
-    
+
     if not decision:
         console.print(f"[red]Error:[/red] Decision '{decision_id}' not found.")
         raise SystemExit(1)
-    
+
     console.print(f"[green]✓[/green] Decision reviewed: [bold]{decision.id}[/bold]")
     console.print(f"  Outcome: {outcome}")
     if decision.lessons:
@@ -224,12 +233,12 @@ def review(
 def show(ctx: click.Context, decision_id: str) -> None:
     """Show details of a specific decision."""
     journal: Journal = ctx.obj["journal"]
-    
+
     decision = journal.get(decision_id)
     if not decision:
         console.print(f"[red]Error:[/red] Decision '{decision_id}' not found.")
         raise SystemExit(1)
-    
+
     console.print(decision.to_markdown())
 
 
@@ -238,7 +247,7 @@ def show(ctx: click.Context, decision_id: str) -> None:
 def stats(ctx: click.Context) -> None:
     """Show decision statistics."""
     journal: Journal = ctx.obj["journal"]
-    
+
     s = journal.stats()
     console.print(str(s))
 
@@ -249,13 +258,86 @@ def stats(ctx: click.Context) -> None:
 def export(ctx: click.Context, fmt: str) -> None:
     """Export all decisions."""
     journal: Journal = ctx.obj["journal"]
-    
+
     if fmt == "markdown":
         output = journal.export_markdown()
     else:
         output = journal.export_json()
-    
+
     click.echo(output)
+
+
+@main.command()
+@click.option(
+    "--type",
+    "-t",
+    "plot_type",
+    type=click.Choice(["calibration", "brier", "confidence", "reasons", "dashboard"]),
+    default="dashboard",
+    help="Type of plot to generate",
+)
+@click.option("--output", "-o", "output_path", help="Output file path (PNG)")
+@click.option("--show", "-s", is_flag=True, help="Display plot interactively")
+@click.option("--window", "-w", type=int, default=5, help="Rolling window size for Brier plot")
+@click.pass_context
+def plot(
+    ctx: click.Context,
+    plot_type: str,
+    output_path: str | None,
+    show: bool,
+    window: int,
+) -> None:
+    """Generate calibration visualizations.
+
+    Requires matplotlib: pip install agent-decisions[plots]
+
+    Plot types:
+      calibration - Reliability diagram (predicted vs actual)
+      brier       - Brier score trend over time
+      confidence  - Confidence distribution by outcome
+      reasons     - Reason type effectiveness
+      dashboard   - All plots in a 2x2 grid
+    """
+    if not PLOTS_AVAILABLE:
+        console.print(
+            "[red]Error:[/red] matplotlib not installed. "
+            "Install with: pip install agent-decisions[plots]"
+        )
+        raise SystemExit(1)
+
+    journal: Journal = ctx.obj["journal"]
+    decisions = journal.list_all()
+
+    if not decisions:
+        console.print("[dim]No decisions found.[/dim]")
+        return
+
+    # Default output path if not specified and not showing
+    if not output_path and not show:
+        output_path = f"calibration_{plot_type}.png"
+
+    try:
+        if plot_type == "calibration":
+            result = plots.plot_calibration(decisions, output_path, show=show)
+        elif plot_type == "brier":
+            result = plots.plot_brier_over_time(
+                decisions, window_size=window, output_path=output_path, show=show
+            )
+        elif plot_type == "confidence":
+            result = plots.plot_confidence_distribution(decisions, output_path, show=show)
+        elif plot_type == "reasons":
+            result = plots.plot_reason_effectiveness(decisions, output_path, show=show)
+        else:  # dashboard
+            result = plots.plot_dashboard(decisions, output_path, show=show)
+
+        if result is None and output_path:
+            console.print(f"[green]✓[/green] Plot saved to: [bold]{output_path}[/bold]")
+        elif result is None:
+            console.print("[dim]Not enough data for this plot.[/dim]")
+
+    except Exception as e:
+        console.print(f"[red]Error generating plot:[/red] {e}")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

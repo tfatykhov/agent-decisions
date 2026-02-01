@@ -13,7 +13,7 @@ from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
 from .journal import Journal
 from .stats import calculate_brier_score, calculate_stats
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "Decision",
     "MentalState",
@@ -25,3 +25,10 @@ __all__ = [
     "calculate_brier_score",
     "calculate_stats",
 ]
+
+# Optional plots module (requires matplotlib)
+try:
+    from . import plots
+    __all__.append("plots")
+except ImportError:
+    plots = None  # type: ignore
