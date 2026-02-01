@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Decision Black Box{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>📊 Dashboard</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.total_decisions }}</div>
+            <div class="stat-label">Total Decisions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.reviewed_decisions }}</div>
+            <div class="stat-label">Reviewed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.pending_decisions }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card {% if due_count > 0 %}stat-warning{% endif %}">
+            <div class="stat-value">{{ due_count }}</div>
+            <div class="stat-label">Due for Review</div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-large">
+            <div class="stat-value">{{ stats.accuracy|pct }}</div>
+            <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-card stat-large">
+            <div class="stat-value">{% if stats.brier_score is not none %}{{ "%.3f"|format(stats.brier_score) }}{% else %}—{% endif %}</div>
+            <div class="stat-label">Brier Score</div>
+            <div class="stat-hint">(0 = perfect, 0.25 = random)</div>
+        </div>
+        <div class="stat-card stat-large">
+            <div class="stat-value">{{ stats.avg_confidence|pct }}</div>
+            <div class="stat-label">Avg Confidence</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Recent Decisions</h2>
+        {% if decisions %}
+        <table class="decision-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Summary</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in decisions %}
+                <tr>
+                    <td>{{ d.timestamp|datefmt("%Y-%m-%d") }}</td>
+                    <td><a href="{{ url_for('decision_detail', decision_id=d.id) }}">{{ d.summary[:50] }}{% if d.summary|length > 50 %}...{% endif %}</a></td>
+                    <td>{{ d.confidence|pct }}</td>
+                    <td>
+                        {% if d.outcome and d.outcome.value == 'success' %}
+                            <span class="badge badge-success">✅ Success</span>
+                        {% elif d.outcome and d.outcome.value == 'failure' %}
+                            <span class="badge badge-danger">❌ Failure</span>
+                        {% elif d.outcome and d.outcome.value == 'partial' %}
+                            <span class="badge badge-warning">⚡ Partial</span>
+                        {% elif d.is_due %}
+                            <span class="badge badge-warning">⏰ Due</span>
+                        {% else %}
+                            <span class="badge badge-muted">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p><a href="{{ url_for('decision_list') }}">View all decisions →</a></p>
+        {% else %}
+        <p class="empty-state">No decisions yet. Start logging some!</p>
+        {% endif %}
+    </div>
+
+    {% if due_count > 0 %}
+    <div class="section">
+        <h2>⏰ Due for Review</h2>
+        <p><a href="{{ url_for('decision_list', filter='due') }}" class="btn btn-primary">Review {{ due_count }} decision{% if due_count > 1 %}s{% endif %}</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

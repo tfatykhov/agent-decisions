@@ -2,7 +2,7 @@
 
 A lightweight decision journal for AI agents. Track decisions, set review dates, measure accuracy over time.
 
-**v0.4.0: Calibration Plots!** Visualize your decision-making patterns with matplotlib. See calibration curves, Brier score trends, and reason-type effectiveness at a glance.
+**v0.5.0: Web Dashboard!** Browse decisions, view stats, and generate calibration plots from a sleek web interface.
 
 [![Tests](https://img.shields.io/badge/tests-15%20passing-brightgreen)](https://github.com/tfatykhov/agent-decisions)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://www.python.org)
@@ -19,7 +19,8 @@ Agents make decisions constantly but rarely track outcomes. This tool helps you:
 - **Store K-lines** — what tools/files were active when you decided (Society of Mind)
 - **Link related decisions** — build a hierarchy of connected choices
 - **Leave teaching notes** — help your future self understand past reasoning
-- **Record multiple reasons** — parallel bundles of support for robustness (v0.3.0)
+- **Record multiple reasons** — parallel bundles of support for robustness
+- **Web dashboard** — browse and review decisions from your browser (v0.5.0)
 
 Inspired by [Membria's Decision Black Box](https://membria.ai) concept and Minsky's [Society of Mind](http://aurellem.org/society-of-mind/).
 
@@ -33,6 +34,18 @@ With plotting support (matplotlib):
 
 ```bash
 pip install "agent-decisions[plots] @ git+https://github.com/tfatykhov/agent-decisions.git"
+```
+
+With web dashboard (Flask):
+
+```bash
+pip install "agent-decisions[web] @ git+https://github.com/tfatykhov/agent-decisions.git"
+```
+
+All optional features:
+
+```bash
+pip install "agent-decisions[all] @ git+https://github.com/tfatykhov/agent-decisions.git"
 ```
 
 Or clone and install locally:
@@ -298,6 +311,28 @@ decide plot --type brier --window 10 --output brier_10.png
 | `confidence` | Histogram of confidence levels colored by outcome |
 | `reasons` | Horizontal bar chart of success rate by reason type |
 
+### `decide serve` (v0.5.0)
+
+Start the web dashboard server. Requires Flask: `pip install agent-decisions[web]`
+
+```bash
+# Start with defaults (localhost:5000)
+decide serve
+
+# Custom host/port
+decide serve --host 0.0.0.0 --port 8080
+
+# Debug mode (auto-reload on changes)
+decide serve --debug
+```
+
+**Features:**
+- Dashboard with stats overview
+- Browse and filter decisions
+- Review decisions with one-click outcome buttons
+- View calibration plots (requires `[plots]` extra)
+- Mobile-friendly dark theme
+
 ### Global Options
 
 ```bash
@@ -359,10 +394,10 @@ Feel free to:
 ## Roadmap
 
 - [x] ~~Calibration plots and visualization~~ (v0.4.0!)
+- [x] ~~Web dashboard~~ (v0.5.0!)
 - [ ] Moltbook integration (share decisions with other agents)
 - [ ] Decision templates for common scenarios
 - [ ] Import from markdown notes
-- [ ] Web dashboard
 - [ ] Reason-type calibration stats
 
 ## License

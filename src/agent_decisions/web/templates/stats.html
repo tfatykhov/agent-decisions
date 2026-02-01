@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics — Decision Black Box{% endblock %}
+
+{% block content %}
+<div class="stats-page">
+    <h1>📊 Statistics</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_decisions }}</div>
+            <div class="stat-label">Total Decisions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ reviewed_count }}</div>
+            <div class="stat-label">Reviewed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.pending_decisions }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Outcomes</h2>
+        <div class="outcome-grid">
+            <div class="outcome-card outcome-success">
+                <div class="outcome-value">{{ stats.successes }}</div>
+                <div class="outcome-label">✅ Success</div>
+            </div>
+            <div class="outcome-card outcome-failure">
+                <div class="outcome-value">{{ stats.failures }}</div>
+                <div class="outcome-label">❌ Failure</div>
+            </div>
+            <div class="outcome-card outcome-partial">
+                <div class="outcome-value">{{ stats.partial }}</div>
+                <div class="outcome-label">⚡ Partial</div>
+            </div>
+            <div class="outcome-card outcome-inconclusive">
+                <div class="outcome-value">{{ stats.inconclusive }}</div>
+                <div class="outcome-label">❓ Inconclusive</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Calibration</h2>
+        <div class="stats-grid">
+            <div class="stat-card stat-large">
+                <div class="stat-value">{{ stats.accuracy|pct }}</div>
+                <div class="stat-label">Accuracy</div>
+                <div class="stat-hint">Success / (Success + Failure)</div>
+            </div>
+            <div class="stat-card stat-large">
+                <div class="stat-value">{% if stats.brier_score is not none %}{{ "%.3f"|format(stats.brier_score) }}{% else %}—{% endif %}</div>
+                <div class="stat-label">Brier Score</div>
+                <div class="stat-hint">0 = perfect, 0.25 = random</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Confidence</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.avg_confidence|pct }}</div>
+                <div class="stat-label">Average</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.avg_confidence_on_success|pct }}</div>
+                <div class="stat-label">On Success</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.avg_confidence_on_failure|pct }}</div>
+                <div class="stat-label">On Failure</div>
+            </div>
+        </div>
+    </div>
+
+    {% if reason_counts %}
+    <div class="section">
+        <h2>Reason Types Used</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Reason Type</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rtype, count in reason_counts.items()|sort(attribute='1', reverse=True) %}
+                <tr>
+                    <td>{{ rtype }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if stats.by_category %}
+    <div class="section">
+        <h2>By Category</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Decisions</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat, data in stats.by_category.items()|sort %}
+                <tr>
+                    <td><span class="tag">{{ cat }}</span></td>
+                    <td>{{ data.total }}</td>
+                    <td>{{ "%.0f"|format(data.accuracy * 100) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -13,7 +13,7 @@ from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
 from .journal import Journal
 from .stats import calculate_brier_score, calculate_stats
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __all__ = [
     "Decision",
     "MentalState",

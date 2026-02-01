@@ -340,5 +340,37 @@ def plot(
         raise SystemExit(1)
 
 
+@main.command()
+@click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
+@click.option("--port", "-p", type=int, default=5000, help="Port to bind to")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+@click.pass_context
+def serve(ctx: click.Context, host: str, port: int, debug: bool) -> None:
+    """Start the web dashboard server.
+
+    Requires Flask: pip install agent-decisions[web]
+
+    Opens a web interface for browsing decisions, viewing stats,
+    and generating calibration plots.
+    """
+    try:
+        from .web.app import run_server
+    except ImportError:
+        console.print(
+            "[red]Error:[/red] Flask not installed. "
+            "Install with: pip install agent-decisions[web]"
+        )
+        raise SystemExit(1)
+
+    journal_path = ctx.obj["journal"].directory
+    console.print(f"[green]Starting web dashboard...[/green]")
+    console.print(f"  URL: http://{host}:{port}")
+    console.print(f"  Journal: {journal_path}")
+    console.print("  Press Ctrl+C to stop")
+    console.print()
+
+    run_server(journal_path=journal_path, host=host, port=port, debug=debug)
+
+
 if __name__ == "__main__":
     main()

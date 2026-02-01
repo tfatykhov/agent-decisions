@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Calibration Plots — Decision Black Box{% endblock %}
+
+{% block content %}
+<div class="plots-page">
+    <h1>📈 Calibration Plots</h1>
+
+    <div class="plot-selector">
+        <a href="{{ url_for('plots_page', type='dashboard') }}" class="btn {% if plot_type == 'dashboard' %}btn-primary{% else %}btn-secondary{% endif %}">Dashboard</a>
+        <a href="{{ url_for('plots_page', type='calibration') }}" class="btn {% if plot_type == 'calibration' %}btn-primary{% else %}btn-secondary{% endif %}">Calibration</a>
+        <a href="{{ url_for('plots_page', type='brier') }}" class="btn {% if plot_type == 'brier' %}btn-primary{% else %}btn-secondary{% endif %}">Brier Score</a>
+        <a href="{{ url_for('plots_page', type='confidence') }}" class="btn {% if plot_type == 'confidence' %}btn-primary{% else %}btn-secondary{% endif %}">Confidence</a>
+        <a href="{{ url_for('plots_page', type='reasons') }}" class="btn {% if plot_type == 'reasons' %}btn-primary{% else %}btn-secondary{% endif %}">Reasons</a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% elif plot_data %}
+    <div class="plot-container">
+        <img src="data:image/png;base64,{{ plot_data }}" alt="Calibration plot">
+    </div>
+    {% endif %}
+
+    <div class="plot-legend">
+        <h3>Understanding the Plots</h3>
+        <ul>
+            <li><strong>Calibration:</strong> Compares your predicted confidence to actual success rate. Perfect calibration follows the diagonal. Points above = overconfident, below = underconfident.</li>
+            <li><strong>Brier Score:</strong> Measures calibration over time. Lower is better (0 = perfect, 0.25 = random guessing).</li>
+            <li><strong>Confidence:</strong> Distribution of your confidence levels, colored by outcome. Helps spot patterns.</li>
+            <li><strong>Reasons:</strong> Success rate by reason type. Shows which reasoning approaches work best for you.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

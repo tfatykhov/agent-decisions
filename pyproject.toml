@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-decisions"
-version = "0.4.0"
+version = "0.5.0"
 description = "A lightweight decision journal for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -41,9 +41,13 @@ plots = [
     "matplotlib>=3.5.0",
     "numpy>=1.20.0",
 ]
+web = [
+    "flask>=2.0.0",
+]
 all = [
     "matplotlib>=3.5.0",
     "numpy>=1.20.0",
+    "flask>=2.0.0",
 ]
 
 [project.scripts]
