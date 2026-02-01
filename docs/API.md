@@ -51,14 +51,18 @@ decision = Decision(
 
 **Key Attributes:**
 - `id` (str): Unique 8-char hex ID.
+- `timestamp` (datetime): When the decision was made.
 - `summary` (str): Brief description.
 - `confidence` (float): 0.0 to 1.0.
 - `category` (str): Domain category (default: "general").
 - `stakes` (Stakes): LOW, MEDIUM, HIGH, CRITICAL.
 - `status` (Status): PENDING, REVIEWED.
 - `outcome` (Outcome): SUCCESS, FAILURE, PARTIAL, INCONCLUSIVE (after review).
+- `review_date` (datetime): When to review the decision.
 - `active_context` (list[str]): "K-lines" - tools/files active during decision.
 - `reasons` (list[Reason]): List of supporting reasons.
+- `mental_state` (MentalState): DELIBERATE, REACTIVE, EXPLORATORY, HABITUAL, PRESSURED.
+- `teaching_notes` (str): Notes for future self.
 
 ### `Journal`
 
@@ -80,11 +84,11 @@ Creates and saves a new decision.
 #### `get(decision_id: str) -> Optional[Decision]`
 Retrieves a decision by its ID.
 
-#### `review(decision_id, outcome, result=None, lessons=None) -> Optional[Decision]`
+#### `review(decision_id, outcome, actual_result=None, lessons=None) -> Optional[Decision]`
 Updates a decision with its outcome.
 - **Args**:
   - `outcome`: `Outcome.SUCCESS`, `Outcome.FAILURE`, etc.
-  - `result`: Text description of what happened.
+  - `actual_result`: Text description of what happened.
   - `lessons`: Text description of lessons learned.
 
 #### `list_all() -> list[Decision]`

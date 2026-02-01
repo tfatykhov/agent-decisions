@@ -86,7 +86,6 @@ flowchart TD
     Journal --> Index
     
     Stats --> Models
-    Plots --> Stats
     Plots --> Models
 ```
 
