@@ -129,6 +129,7 @@
     <div class="review-form">
         <h3>Record Outcome</h3>
         <form method="POST" action="{{ url_for('review_decision', decision_id=decision.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label>Outcome</label>
                 <div class="outcome-buttons">

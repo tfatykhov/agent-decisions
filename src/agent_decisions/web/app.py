@@ -5,6 +5,7 @@ Flask application for the agent-decisions web dashboard.
 from __future__ import annotations
 
 import base64
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -33,7 +34,9 @@ def create_app(journal_path: str = "./decisions") -> Flask:
         template_folder="templates",
         static_folder="static",
     )
-    app.secret_key = "agent-decisions-dashboard"  # For flash messages
+
+    # Load secret key from environment or generate a random one
+    app.secret_key = os.environ.get("DECIDE_SECRET_KEY", os.urandom(32))
 
     # Initialize journal
     journal = Journal(journal_path)
@@ -99,6 +102,12 @@ def create_app(journal_path: str = "./decisions") -> Flask:
     @app.route("/decisions/<decision_id>/review", methods=["POST"])
     def review_decision(decision_id: str) -> str:
         """Record the outcome of a decision."""
+        # CSRF protection: verify token
+        csrf_token = request.form.get("csrf_token")
+        if not csrf_token or csrf_token != request.cookies.get("csrf_token"):
+            flash("Invalid request (CSRF check failed)", "error")
+            return redirect(url_for("decision_detail", decision_id=decision_id))
+
         outcome = request.form.get("outcome")
         result = request.form.get("result", "")
         lessons = request.form.get("lessons", "")
@@ -107,17 +116,26 @@ def create_app(journal_path: str = "./decisions") -> Flask:
             flash("Outcome is required", "error")
             return redirect(url_for("decision_detail", decision_id=decision_id))
 
-        decision = journal.review(
-            decision_id=decision_id,
-            outcome=Outcome(outcome),
-            actual_result=result or None,
-            lessons=lessons or None,
-        )
+        # Validate outcome enum
+        valid_outcomes = {"success", "failure", "partial", "inconclusive"}
+        if outcome not in valid_outcomes:
+            flash(f"Invalid outcome: {outcome}", "error")
+            return redirect(url_for("decision_detail", decision_id=decision_id))
 
-        if decision:
-            flash(f"Decision reviewed: {outcome}", "success")
-        else:
-            flash(f"Decision '{decision_id}' not found", "error")
+        try:
+            decision = journal.review(
+                decision_id=decision_id,
+                outcome=Outcome(outcome),
+                actual_result=result or None,
+                lessons=lessons or None,
+            )
+
+            if decision:
+                flash(f"Decision reviewed: {outcome}", "success")
+            else:
+                flash(f"Decision '{decision_id}' not found", "error")
+        except ValueError as e:
+            flash(f"Error reviewing decision: {e}", "error")
 
         return redirect(url_for("decision_detail", decision_id=decision_id))
 
@@ -217,6 +235,26 @@ def create_app(journal_path: str = "./decisions") -> Flask:
         if value is None:
             return "—"
         return f"{value:.0%}"
+
+    @app.after_request
+    def set_csrf_cookie(response):
+        """Set CSRF token cookie if not present."""
+        import secrets
+        if "csrf_token" not in request.cookies:
+            csrf_token = secrets.token_hex(32)
+            response.set_cookie(
+                "csrf_token",
+                csrf_token,
+                httponly=True,
+                samesite="Strict",
+                secure=request.is_secure,
+            )
+        return response
+
+    @app.context_processor
+    def inject_csrf_token():
+        """Make CSRF token available in all templates."""
+        return {"csrf_token": request.cookies.get("csrf_token", "")}
 
     return app
 

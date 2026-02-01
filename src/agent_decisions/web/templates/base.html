@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Decision Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -33,7 +33,7 @@
     </main>
 
     <footer class="footer">
-        <p>Decision Black Box v0.4.0 — <a href="https://github.com/tfatykhov/agent-decisions">GitHub</a></p>
+        <p>Decision Black Box v0.5.0 — <a href="https://github.com/tfatykhov/agent-decisions">GitHub</a></p>
     </footer>
 </body>
 </html>
