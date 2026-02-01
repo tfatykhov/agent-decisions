@@ -102,9 +102,12 @@ def create_app(journal_path: str = "./decisions") -> Flask:
     @app.route("/decisions/<decision_id>/review", methods=["POST"])
     def review_decision(decision_id: str) -> str:
         """Record the outcome of a decision."""
+        from flask import g
+
         # CSRF protection: verify token
         csrf_token = request.form.get("csrf_token")
-        if not csrf_token or csrf_token != request.cookies.get("csrf_token"):
+        expected_token = getattr(g, "csrf_token", None)
+        if not csrf_token or not expected_token or csrf_token != expected_token:
             flash("Invalid request (CSRF check failed)", "error")
             return redirect(url_for("decision_detail", decision_id=decision_id))
 
@@ -236,15 +239,26 @@ def create_app(journal_path: str = "./decisions") -> Flask:
             return "—"
         return f"{value:.0%}"
 
+    @app.before_request
+    def ensure_csrf_token():
+        """Ensure CSRF token exists before processing request."""
+        import secrets
+        if "csrf_token" not in request.cookies:
+            # Store token in g for this request, will be set as cookie in after_request
+            from flask import g
+            g.csrf_token = secrets.token_hex(32)
+        else:
+            from flask import g
+            g.csrf_token = request.cookies.get("csrf_token")
+
     @app.after_request
     def set_csrf_cookie(response):
         """Set CSRF token cookie if not present."""
-        import secrets
-        if "csrf_token" not in request.cookies:
-            csrf_token = secrets.token_hex(32)
+        from flask import g
+        if "csrf_token" not in request.cookies and hasattr(g, "csrf_token"):
             response.set_cookie(
                 "csrf_token",
-                csrf_token,
+                g.csrf_token,
                 httponly=True,
                 samesite="Strict",
                 secure=request.is_secure,
@@ -254,7 +268,8 @@ def create_app(journal_path: str = "./decisions") -> Flask:
     @app.context_processor
     def inject_csrf_token():
         """Make CSRF token available in all templates."""
-        return {"csrf_token": request.cookies.get("csrf_token", "")}
+        from flask import g
+        return {"csrf_token": getattr(g, "csrf_token", "")}
 
     return app
 
