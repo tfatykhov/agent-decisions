@@ -82,6 +82,44 @@ def calculate_calibration_bins(
     return result
 
 
+def calculate_ece(
+    decisions: list[Decision],
+    n_bins: int = 10,
+) -> float | None:
+    """
+    Calculate Expected Calibration Error (ECE).
+
+    ECE = Σ (n_b / N) * |acc_b - conf_b|
+
+    Where n_b is the number of samples in bin b, N is total samples,
+    acc_b is accuracy in bin b, conf_b is mean confidence in bin b.
+
+    Lower is better: 0 = perfect calibration.
+
+    Args:
+        decisions: List of reviewed decisions with binary outcomes
+        n_bins: Number of bins to use
+
+    Returns:
+        ECE value (0-1) or None if no scored decisions
+    """
+    bins = calculate_calibration_bins(decisions, n_bins)
+
+    if not bins:
+        return None
+
+    total_count = sum(b.count for b in bins)
+    if total_count == 0:
+        return None
+
+    ece = sum(
+        (b.count / total_count) * abs(b.actual_mean - b.predicted_mean)
+        for b in bins
+    )
+
+    return ece
+
+
 def calculate_brier_over_time(
     decisions: list[Decision],
     window_size: int = 5,
@@ -246,9 +284,19 @@ def plot_calibration(
     ax.set_aspect("equal")
     ax.grid(True, alpha=0.3)
 
-    # Determine overconfidence/underconfidence
-    total_pred = sum(predicted) / len(predicted)
-    total_actual = sum(actual) / len(actual)
+    # Determine overconfidence/underconfidence using raw decision data
+    # (weighted properly by count, not unweighted bin means)
+    scored = [
+        (d.confidence, d.outcome_binary)
+        for d in decisions
+        if d.outcome_binary is not None
+    ]
+    if scored:
+        total_pred = sum(c for c, _ in scored) / len(scored)
+        total_actual = sum(o for _, o in scored) / len(scored)
+    else:
+        total_pred = sum(predicted) / len(predicted)
+        total_actual = sum(actual) / len(actual)
 
     if total_pred > total_actual + 0.1:
         ax.text(
@@ -269,6 +317,20 @@ def plot_calibration(
             fontsize=10,
             verticalalignment="top",
             color="green",
+        )
+
+    # Add ECE metric
+    ece = calculate_ece(decisions)
+    if ece is not None:
+        ax.text(
+            0.95,
+            0.05,
+            f"ECE: {ece:.3f}",
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
         )
 
     plt.tight_layout()

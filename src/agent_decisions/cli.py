@@ -14,10 +14,12 @@ from rich.table import Table
 from .journal import Journal
 from .models import MentalState, Outcome, ReasonType, Stakes
 
-# Lazy import for plots (optional dependency)
-PLOTS_AVAILABLE = True
+# Check if matplotlib is actually available (not just plots module)
+PLOTS_AVAILABLE = False
 try:
+    import matplotlib  # noqa: F401
     from . import plots
+    PLOTS_AVAILABLE = True
 except ImportError:
     PLOTS_AVAILABLE = False
 
