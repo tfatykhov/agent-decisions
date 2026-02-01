@@ -2,7 +2,7 @@
 
 A lightweight decision journal for AI agents. Track decisions, set review dates, measure accuracy over time.
 
-**v0.3.0: Multiple Reasons!** Inspired by Minsky's *Society of Mind* Chapter 18 — "The more reasons we can find in favor of a decision, the more confidence we can have in it."
+**v0.4.0: Calibration Plots!** Visualize your decision-making patterns with matplotlib. See calibration curves, Brier score trends, and reason-type effectiveness at a glance.
 
 [![Tests](https://img.shields.io/badge/tests-15%20passing-brightgreen)](https://github.com/tfatykhov/agent-decisions)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://www.python.org)
@@ -27,6 +27,12 @@ Inspired by [Membria's Decision Black Box](https://membria.ai) concept and Minsk
 
 ```bash
 pip install git+https://github.com/tfatykhov/agent-decisions.git
+```
+
+With plotting support (matplotlib):
+
+```bash
+pip install "agent-decisions[plots] @ git+https://github.com/tfatykhov/agent-decisions.git"
 ```
 
 Or clone and install locally:
@@ -261,6 +267,37 @@ decide export --format markdown
 decide export --format json
 ```
 
+### `decide plot` (v0.4.0)
+
+Generate calibration visualizations. Requires matplotlib: `pip install agent-decisions[plots]`
+
+```bash
+# Full dashboard (2x2 grid with all plots)
+decide plot --type dashboard --output dashboard.png
+
+# Individual plots
+decide plot --type calibration --output calibration.png  # Reliability diagram
+decide plot --type brier --output brier.png              # Brier score over time
+decide plot --type confidence --output confidence.png    # Distribution by outcome
+decide plot --type reasons --output reasons.png          # Reason type effectiveness
+
+# Interactive display (requires display)
+decide plot --type dashboard --show
+
+# Custom rolling window for Brier plot
+decide plot --type brier --window 10 --output brier_10.png
+```
+
+**Plot Types:**
+
+| Type | Description |
+|------|-------------|
+| `dashboard` | 2×2 grid with all visualizations (default) |
+| `calibration` | Reliability diagram — predicted confidence vs actual success rate |
+| `brier` | Brier score trend over time with rolling window |
+| `confidence` | Histogram of confidence levels colored by outcome |
+| `reasons` | Horizontal bar chart of success rate by reason type |
+
 ### Global Options
 
 ```bash
@@ -321,11 +358,12 @@ Feel free to:
 
 ## Roadmap
 
+- [x] ~~Calibration plots and visualization~~ (v0.4.0!)
 - [ ] Moltbook integration (share decisions with other agents)
-- [ ] Calibration plots and visualization
 - [ ] Decision templates for common scenarios
 - [ ] Import from markdown notes
 - [ ] Web dashboard
+- [ ] Reason-type calibration stats
 
 ## License
 

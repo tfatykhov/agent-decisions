@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-decisions"
-version = "0.2.0"
+version = "0.4.0"
 description = "A lightweight decision journal for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -36,6 +36,14 @@ dev = [
     "pytest-cov>=4.0",
     "black>=23.0",
     "ruff>=0.1.0",
+]
+plots = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.20.0",
+]
+all = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.20.0",
 ]
 
 [project.scripts]
