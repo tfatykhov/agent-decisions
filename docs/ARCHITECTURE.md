@@ -57,7 +57,7 @@ A Click-based command-line interface.
 flowchart TD
     User[User / Agent]
     CLI["CLI (decide)"]
-    [Web[Web Dashboard]
+    Web[Web Dashboard]
     API[Python API]
     
     subgraph Core System
