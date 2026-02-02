@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from agent_decisions import Decision, Journal, Outcome, Stakes
+from agent_decisions.models import ReasonType
 from agent_decisions.stats import calculate_brier_score, calculate_stats
 
 
@@ -80,6 +81,78 @@ class TestDecision:
         assert "## Markdown test" in md
         assert "90%" in md
         assert "docs" in md
+
+
+class TestReasonDiversity:
+    """Tests for reason diversity scoring (noxious6's insight)."""
+    
+    def test_no_reasons_returns_zero(self):
+        d = Decision(summary="No reasons", confidence=0.8)
+        assert d.reason_diversity_score == 0.0
+        assert d.has_diverse_reasons is False
+    
+    def test_single_reason_full_diversity(self):
+        d = Decision(summary="One reason", confidence=0.8)
+        d.add_reason(ReasonType.ANALYSIS, "First principles", 0.8)
+        assert d.reason_diversity_score == 1.0
+        assert d.has_diverse_reasons is True
+    
+    def test_all_same_type_low_diversity(self):
+        d = Decision(summary="Correlated reasons", confidence=0.8)
+        d.add_reason(ReasonType.PATTERN, "Saw this before", 0.7)
+        d.add_reason(ReasonType.PATTERN, "Similar to project X", 0.8)
+        d.add_reason(ReasonType.PATTERN, "Matches template", 0.6)
+        
+        # 1 unique type / 3 reasons = 0.33
+        assert d.reason_diversity_score == pytest.approx(0.333, abs=0.01)
+        assert d.has_diverse_reasons is False
+    
+    def test_diverse_reasons_high_score(self):
+        d = Decision(summary="Independent reasons", confidence=0.8)
+        d.add_reason(ReasonType.PATTERN, "Saw this before", 0.7)
+        d.add_reason(ReasonType.ANALYSIS, "First principles", 0.8)
+        d.add_reason(ReasonType.EMPIRICAL, "Data supports it", 0.9)
+        
+        # 3 unique types / 3 reasons = 1.0
+        assert d.reason_diversity_score == 1.0
+        assert d.has_diverse_reasons is True
+    
+    def test_partial_diversity(self):
+        d = Decision(summary="Mixed", confidence=0.8)
+        d.add_reason(ReasonType.PATTERN, "Pattern 1", 0.7)
+        d.add_reason(ReasonType.PATTERN, "Pattern 2", 0.6)
+        d.add_reason(ReasonType.ANALYSIS, "Analysis", 0.8)
+        d.add_reason(ReasonType.EMPIRICAL, "Data", 0.9)
+        
+        # 3 unique types / 4 reasons = 0.75
+        assert d.reason_diversity_score == 0.75
+        assert d.has_diverse_reasons is True
+    
+    def test_diversity_warning_when_low(self):
+        d = Decision(summary="Correlated", confidence=0.8)
+        d.add_reason(ReasonType.AUTHORITY, "Expert says so", 0.8)
+        d.add_reason(ReasonType.AUTHORITY, "Paper says so", 0.7)
+        
+        warning = d.get_reason_diversity_warning()
+        assert warning is not None
+        assert "Low reason diversity" in warning
+        assert "authority" in warning
+    
+    def test_no_warning_when_diverse(self):
+        d = Decision(summary="Diverse", confidence=0.8)
+        d.add_reason(ReasonType.ANALYSIS, "First principles", 0.8)
+        d.add_reason(ReasonType.EMPIRICAL, "Data supports it", 0.9)
+        
+        warning = d.get_reason_diversity_warning()
+        assert warning is None
+    
+    def test_markdown_includes_warning(self):
+        d = Decision(summary="Correlated decision", confidence=0.8)
+        d.add_reason(ReasonType.INTUITION, "Feels right", 0.7)
+        d.add_reason(ReasonType.INTUITION, "Gut says yes", 0.6)
+        
+        md = d.to_markdown()
+        assert "Diversity Warning" in md
 
 
 class TestJournal:

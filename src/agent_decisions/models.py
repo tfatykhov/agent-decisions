@@ -240,6 +240,56 @@ class Decision:
             return None
         return sum(r.strength for r in self.reasons) / len(self.reasons)
     
+    @property
+    def reason_diversity_score(self) -> float:
+        """
+        Calculate diversity of reasoning types (0.0 to 1.0).
+        
+        From noxious6's insight: decisions that feel well-supported often have
+        correlated reasons that fail together. True robustness comes from
+        independent, diverse reasoning types.
+        
+        Score = unique_types / total_reasons
+        - 1.0 = every reason is a different type (maximum diversity)
+        - 0.2 = 5 reasons all same type (weak, correlated)
+        
+        Returns:
+            Diversity score, or 0.0 if no reasons
+        """
+        if not self.reasons:
+            return 0.0
+        unique_types = len(set(r.reason_type for r in self.reasons))
+        return unique_types / len(self.reasons)
+    
+    @property
+    def has_diverse_reasons(self) -> bool:
+        """
+        Check if decision has sufficiently diverse reasoning.
+        
+        Threshold: at least 50% of reasons should be different types.
+        A decision with 4 reasons should have at least 2 unique types.
+        """
+        return self.reason_diversity_score >= 0.5
+    
+    def get_reason_diversity_warning(self) -> Optional[str]:
+        """
+        Return a warning if reasons appear correlated.
+        
+        Returns:
+            Warning message if diversity is low, None otherwise
+        """
+        if len(self.reasons) < 2:
+            return None
+        
+        score = self.reason_diversity_score
+        if score < 0.5:
+            types_used = self.reason_types_used
+            return (
+                f"Low reason diversity ({score:.0%}). "
+                f"All reasons are type: {', '.join(types_used)}. "
+                f"Consider adding independent reasoning types for robustness."
+            )
+    
     def review(
         self,
         outcome: Outcome | str,
@@ -333,6 +383,11 @@ class Decision:
             for r in self.reasons:
                 strength_bar = "●" * int(r.strength * 5) + "○" * (5 - int(r.strength * 5))
                 lines.append(f"- [{r.reason_type.value}] {r.text} ({strength_bar})")
+            
+            # Add diversity warning if applicable
+            warning = self.get_reason_diversity_warning()
+            if warning:
+                lines.extend(["", f"⚠️ **Diversity Warning:** {warning}"])
         
         if self.active_context:
             lines.extend(["", "**Active Context (K-Lines):**"])
