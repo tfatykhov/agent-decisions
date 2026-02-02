@@ -3,8 +3,6 @@ Command-line interface for agent-decisions.
 """
 
 import re
-from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 import click
@@ -18,6 +16,7 @@ from .models import MentalState, Outcome, ReasonType, Stakes
 PLOTS_AVAILABLE = False
 try:
     import matplotlib  # noqa: F401
+
     from . import plots
     PLOTS_AVAILABLE = True
 except ImportError:
@@ -363,7 +362,7 @@ def serve(ctx: click.Context, host: str, port: int, debug: bool) -> None:
         raise SystemExit(1)
 
     journal_path = ctx.obj["journal"].directory
-    console.print(f"[green]Starting web dashboard...[/green]")
+    console.print("[green]Starting web dashboard...[/green]")
     console.print(f"  URL: http://{host}:{port}")
     console.print(f"  Journal: {journal_path}")
     console.print("  Press Ctrl+C to stop")
@@ -397,10 +396,16 @@ def validate(ctx: click.Context, fix: bool) -> None:
             low_diversity.append(d)
 
     if not low_diversity:
-        console.print(f"[green]✓[/green] All {len(decisions)} pending decisions have diverse reasoning.")
+        console.print(
+            f"[green]✓[/green] All {len(decisions)} pending decisions "
+            "have diverse reasoning."
+        )
         return
 
-    console.print(f"[yellow]⚠️  {len(low_diversity)} decision(s) with low reason diversity:[/yellow]\n")
+    console.print(
+        f"[yellow]⚠️  {len(low_diversity)} decision(s) with "
+        "low reason diversity:[/yellow]\n"
+    )
 
     for d in low_diversity:
         console.print(f"[bold]{d.id}[/bold]: {d.summary[:50]}")
@@ -419,7 +424,10 @@ def validate(ctx: click.Context, fix: bool) -> None:
             used_types = set(r.reason_type for r in d.reasons)
             unused_types = set(ReasonType) - used_types
             suggestions = list(unused_types)[:3]
-            console.print(f"  [cyan]Suggestions:[/cyan] Add a reason of type: {', '.join(t.value for t in suggestions)}")
+            type_list = ", ".join(t.value for t in suggestions)
+            console.print(
+                f"  [cyan]Suggestions:[/cyan] Add a reason of type: {type_list}"
+            )
 
         console.print()
 

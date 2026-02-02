@@ -374,8 +374,8 @@ def plot_brier_over_time(
         PNG bytes if output_path is None and show is False
     """
     try:
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. "
@@ -623,8 +623,8 @@ def plot_dashboard(
         PNG bytes if output_path is None and show is False
     """
     try:
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
         import numpy as np
     except ImportError as e:
         raise ImportError(

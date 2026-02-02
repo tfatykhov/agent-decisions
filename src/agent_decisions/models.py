@@ -8,11 +8,11 @@ Inspired by Minsky's Society of Mind:
 - teaching_notes: What past-self wants future-self to know
 """
 
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
-import uuid
 
 
 class Outcome(str, Enum):
@@ -79,19 +79,19 @@ class Reason:
     reason_type: ReasonType
     text: str
     strength: float = 0.5  # 0.0 = weak, 1.0 = strong
-    
+
     def __post_init__(self):
         if isinstance(self.reason_type, str):
             self.reason_type = ReasonType(self.reason_type)
         self.strength = max(0.0, min(1.0, float(self.strength)))
-    
+
     def to_dict(self) -> dict:
         return {
             "type": self.reason_type.value,
             "text": self.text,
             "strength": self.strength,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Reason":
         return cls(
@@ -130,10 +130,10 @@ class Decision:
         lessons: What was learned
         reviewed_at: When the review was done
     """
-    
+
     summary: str
     confidence: float
-    
+
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     timestamp: datetime = field(default_factory=datetime.utcnow)
     category: str = "general"
@@ -142,27 +142,27 @@ class Decision:
     alternatives: list[str] = field(default_factory=list)
     review_date: Optional[datetime] = None
     status: Status = Status.PENDING
-    
+
     # K-Line fields (Society of Mind)
     active_context: list[str] = field(default_factory=list)
     related_decisions: list[str] = field(default_factory=list)
     mental_state: Optional[MentalState] = None
     teaching_notes: Optional[str] = None
-    
+
     # Multiple reasons (Minsky Ch 18: strength from multitude)
     reasons: list[Reason] = field(default_factory=list)
-    
+
     # Post-review fields
     outcome: Optional[Outcome] = None
     actual_result: Optional[str] = None
     lessons: Optional[str] = None
     reviewed_at: Optional[datetime] = None
-    
+
     def __post_init__(self):
         """Validate and normalize fields."""
         # Clamp confidence to [0, 1]
         self.confidence = max(0.0, min(1.0, float(self.confidence)))
-        
+
         # Convert string enums if needed
         if isinstance(self.stakes, str):
             self.stakes = Stakes(self.stakes)
@@ -172,19 +172,19 @@ class Decision:
             self.outcome = Outcome(self.outcome)
         if isinstance(self.mental_state, str):
             self.mental_state = MentalState(self.mental_state)
-    
+
     @property
     def is_pending(self) -> bool:
         """Check if decision is pending review."""
         return self.status == Status.PENDING
-    
+
     @property
     def is_due(self) -> bool:
         """Check if decision is due for review."""
         if not self.review_date or not self.is_pending:
             return False
         return datetime.utcnow() >= self.review_date
-    
+
     @property
     def outcome_binary(self) -> Optional[float]:
         """
@@ -198,25 +198,25 @@ class Decision:
         elif self.outcome == Outcome.FAILURE:
             return 0.0
         return None
-    
+
     def set_review_in_days(self, days: int) -> None:
         """Set review date to N days from now."""
         self.review_date = datetime.utcnow() + timedelta(days=days)
-    
+
     def link_decision(self, decision_id: str) -> None:
         """Link this decision to a related past decision (K-line hierarchy)."""
         if decision_id not in self.related_decisions:
             self.related_decisions.append(decision_id)
-    
+
     def add_context(self, context_item: str) -> None:
         """Add an active context item (tool, file, API, etc.)."""
         if context_item not in self.active_context:
             self.active_context.append(context_item)
-    
+
     def add_reason(
-        self, 
-        reason_type: ReasonType | str, 
-        text: str, 
+        self,
+        reason_type: ReasonType | str,
+        text: str,
         strength: float = 0.5
     ) -> None:
         """
@@ -227,19 +227,19 @@ class Decision:
         if isinstance(reason_type, str):
             reason_type = ReasonType(reason_type)
         self.reasons.append(Reason(reason_type=reason_type, text=text, strength=strength))
-    
+
     @property
     def reason_types_used(self) -> list[str]:
         """Get list of unique reason types used."""
         return list(set(r.reason_type.value for r in self.reasons))
-    
+
     @property
     def average_reason_strength(self) -> Optional[float]:
         """Get average strength of all reasons."""
         if not self.reasons:
             return None
         return sum(r.strength for r in self.reasons) / len(self.reasons)
-    
+
     @property
     def reason_diversity_score(self) -> float:
         """
@@ -260,7 +260,7 @@ class Decision:
             return 0.0
         unique_types = len(set(r.reason_type for r in self.reasons))
         return unique_types / len(self.reasons)
-    
+
     @property
     def has_diverse_reasons(self) -> bool:
         """
@@ -270,7 +270,7 @@ class Decision:
         A decision with 4 reasons should have at least 2 unique types.
         """
         return self.reason_diversity_score >= 0.5
-    
+
     def get_reason_diversity_warning(self) -> Optional[str]:
         """
         Return a warning if reasons appear correlated.
@@ -280,7 +280,7 @@ class Decision:
         """
         if len(self.reasons) < 2:
             return None
-        
+
         score = self.reason_diversity_score
         if score < 0.5:
             types_used = self.reason_types_used
@@ -289,7 +289,7 @@ class Decision:
                 f"All reasons are type: {', '.join(types_used)}. "
                 f"Consider adding independent reasoning types for robustness."
             )
-    
+
     def review(
         self,
         outcome: Outcome | str,
@@ -306,13 +306,13 @@ class Decision:
         """
         if isinstance(outcome, str):
             outcome = Outcome(outcome)
-        
+
         self.outcome = outcome
         self.actual_result = actual_result
         self.lessons = lessons
         self.reviewed_at = datetime.utcnow()
         self.status = Status.REVIEWED
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return {
@@ -339,7 +339,7 @@ class Decision:
             "lessons": self.lessons,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Decision":
         """Create Decision from dictionary."""
@@ -350,13 +350,13 @@ class Decision:
             data["review_date"] = datetime.fromisoformat(data["review_date"])
         if isinstance(data.get("reviewed_at"), str):
             data["reviewed_at"] = datetime.fromisoformat(data["reviewed_at"])
-        
+
         # Parse reasons
         if "reasons" in data and data["reasons"]:
             data["reasons"] = [Reason.from_dict(r) for r in data["reasons"]]
-        
+
         return cls(**data)
-    
+
     def to_markdown(self) -> str:
         """Export decision as markdown."""
         lines = [
@@ -368,43 +368,43 @@ class Decision:
             f"- **Category:** {self.category}",
             f"- **Stakes:** {self.stakes.value}",
         ]
-        
+
         if self.mental_state:
             lines.append(f"- **Mental State:** {self.mental_state.value}")
-        
+
         if self.context:
             lines.extend(["", f"**Context:** {self.context}"])
-        
+
         if self.teaching_notes:
             lines.extend(["", f"**Teaching Notes:** {self.teaching_notes}"])
-        
+
         if self.reasons:
             lines.extend(["", "**Reasons (parallel support):**"])
             for r in self.reasons:
                 strength_bar = "●" * int(r.strength * 5) + "○" * (5 - int(r.strength * 5))
                 lines.append(f"- [{r.reason_type.value}] {r.text} ({strength_bar})")
-            
+
             # Add diversity warning if applicable
             warning = self.get_reason_diversity_warning()
             if warning:
                 lines.extend(["", f"⚠️ **Diversity Warning:** {warning}"])
-        
+
         if self.active_context:
             lines.extend(["", "**Active Context (K-Lines):**"])
             for ctx in self.active_context:
                 lines.append(f"- {ctx}")
-        
+
         if self.alternatives:
             lines.extend(["", "**Alternatives considered:**"])
             for alt in self.alternatives:
                 lines.append(f"- {alt}")
-        
+
         if self.related_decisions:
             lines.extend(["", f"**Related Decisions:** {', '.join(self.related_decisions)}"])
-        
+
         if self.review_date:
             lines.append(f"- **Review Date:** {self.review_date.strftime('%Y-%m-%d')}")
-        
+
         if self.status == Status.REVIEWED:
             lines.extend([
                 "",
@@ -417,5 +417,5 @@ class Decision:
                 lines.append(f"- **Lessons:** {self.lessons}")
             if self.reviewed_at:
                 lines.append(f"- **Reviewed:** {self.reviewed_at.strftime('%Y-%m-%d')}")
-        
+
         return "\n".join(lines)

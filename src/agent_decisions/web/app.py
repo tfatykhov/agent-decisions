@@ -7,13 +7,12 @@ from __future__ import annotations
 import base64
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, flash, redirect, render_template, request, url_for
 
 if TYPE_CHECKING:
-    from ..journal import Journal
+    pass
 
 
 def create_app(journal_path: str = "./decisions") -> Flask:
