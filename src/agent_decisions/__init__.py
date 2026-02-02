@@ -9,8 +9,8 @@ Inspired by Minsky's Society of Mind:
 - Reasons: Multiple independent reasons for robustness (Ch 18)
 """
 
-from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
 from .journal import Journal
+from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
 from .stats import calculate_brier_score, calculate_stats
 
 __version__ = "0.5.0"

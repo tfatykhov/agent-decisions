@@ -3,14 +3,13 @@ Journal - file-based decision storage and retrieval.
 """
 
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import yaml
 
-from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes, Status
+from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
 from .stats import Stats, calculate_stats
 
 
@@ -25,7 +24,7 @@ class Journal:
           YYYY-MM-DD-decision-XXX.md
       DECISIONS.md  (index/summary)
     """
-    
+
     def __init__(self, path: str | Path = "./decisions"):
         """
         Initialize journal at the given path.
@@ -37,49 +36,49 @@ class Journal:
         self.path.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, Decision] = {}
         self._load_all()
-    
+
     def _load_all(self) -> None:
         """Load all decisions from disk into cache."""
         self._cache.clear()
-        
+
         # Walk through year/month directories
         for year_dir in self.path.iterdir():
             if not year_dir.is_dir() or not year_dir.name.isdigit():
                 continue
-            
+
             for month_dir in year_dir.iterdir():
                 if not month_dir.is_dir() or not month_dir.name.isdigit():
                     continue
-                
+
                 for file in month_dir.glob("*.yaml"):
                     try:
                         decision = self._load_file(file)
                         self._cache[decision.id] = decision
                     except Exception as e:
                         print(f"Warning: Failed to load {file}: {e}")
-    
+
     def _load_file(self, path: Path) -> Decision:
         """Load a single decision from a YAML file."""
         with open(path, "r") as f:
             data = yaml.safe_load(f)
         return Decision.from_dict(data)
-    
+
     def _save_file(self, decision: Decision) -> Path:
         """Save a decision to a YAML file."""
         # Create directory structure: YYYY/MM/
         date = decision.timestamp
         dir_path = self.path / f"{date.year}" / f"{date.month:02d}"
         dir_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Filename: YYYY-MM-DD-decision-XXX.yaml
         filename = f"{date.strftime('%Y-%m-%d')}-decision-{decision.id}.yaml"
         file_path = dir_path / filename
-        
+
         with open(file_path, "w") as f:
             yaml.dump(decision.to_dict(), f, default_flow_style=False, sort_keys=False)
-        
+
         return file_path
-    
+
     def _find_file(self, decision_id: str) -> Optional[Path]:
         """Find the file path for a decision by ID."""
         for year_dir in self.path.iterdir():
@@ -91,7 +90,7 @@ class Journal:
                 for file in month_dir.glob(f"*-decision-{decision_id}.yaml"):
                     return file
         return None
-    
+
     def log(
         self,
         summary: str,
@@ -131,7 +130,7 @@ class Journal:
             stakes = Stakes(stakes)
         if isinstance(mental_state, str):
             mental_state = MentalState(mental_state)
-        
+
         # Parse reasons
         parsed_reasons = []
         if reasons:
@@ -141,7 +140,7 @@ class Journal:
                     text=r["text"],
                     strength=r.get("strength", 0.5),
                 ))
-        
+
         decision = Decision(
             summary=summary,
             confidence=confidence,
@@ -155,20 +154,20 @@ class Journal:
             teaching_notes=teaching_notes,
             reasons=parsed_reasons,
         )
-        
+
         if review_days:
             decision.set_review_in_days(review_days)
-        
+
         self._save_file(decision)
         self._cache[decision.id] = decision
         self._update_index()
-        
+
         return decision
-    
+
     def get(self, decision_id: str) -> Optional[Decision]:
         """Get a decision by ID."""
         return self._cache.get(decision_id)
-    
+
     def review(
         self,
         decision_id: str,
@@ -191,37 +190,37 @@ class Journal:
         decision = self._cache.get(decision_id)
         if not decision:
             return None
-        
+
         decision.review(outcome, actual_result, lessons)
         self._save_file(decision)
         self._update_index()
-        
+
         return decision
-    
+
     def list_all(self) -> list[Decision]:
         """Get all decisions."""
         return list(self._cache.values())
-    
+
     def list_pending(self) -> list[Decision]:
         """Get all pending (unreviewed) decisions."""
         return [d for d in self._cache.values() if d.is_pending]
-    
+
     def list_due(self) -> list[Decision]:
         """Get all decisions due for review."""
         return [d for d in self._cache.values() if d.is_due]
-    
+
     def list_by_category(self, category: str) -> list[Decision]:
         """Get all decisions in a category."""
         return [d for d in self._cache.values() if d.category == category]
-    
+
     def stats(self) -> Stats:
         """Calculate statistics for all decisions."""
         return calculate_stats(list(self._cache.values()))
-    
+
     def _update_index(self) -> None:
         """Update the DECISIONS.md index file."""
         stats = self.stats()
-        
+
         lines = [
             "# Decision Journal",
             "",
@@ -233,12 +232,12 @@ class Journal:
             f"- **Reviewed:** {stats.reviewed_decisions}",
             f"- **Pending:** {stats.pending_decisions}",
         ]
-        
+
         if stats.accuracy is not None:
             lines.append(f"- **Accuracy:** {stats.accuracy:.1%}")
         if stats.brier_score is not None:
             lines.append(f"- **Brier Score:** {stats.brier_score:.3f}")
-        
+
         # Recent decisions
         recent = sorted(self._cache.values(), key=lambda d: d.timestamp, reverse=True)[:10]
         if recent:
@@ -253,7 +252,7 @@ class Journal:
                     f"- {status} `{d.id}` [{d.timestamp.strftime('%Y-%m-%d')}] "
                     f"{d.summary[:50]}{'...' if len(d.summary) > 50 else ''}"
                 )
-        
+
         # Pending reviews
         due = self.list_due()
         if due:
@@ -264,15 +263,15 @@ class Journal:
             ])
             for d in due:
                 lines.append(f"- `{d.id}` {d.summary[:50]}")
-        
+
         index_path = self.path / "DECISIONS.md"
         with open(index_path, "w") as f:
             f.write("\n".join(lines))
-    
+
     def export_markdown(self) -> str:
         """Export all decisions as markdown."""
         decisions = sorted(self._cache.values(), key=lambda d: d.timestamp, reverse=True)
-        
+
         lines = [
             "# Decision Journal Export",
             "",
@@ -281,15 +280,15 @@ class Journal:
             "---",
             "",
         ]
-        
+
         for d in decisions:
             lines.append(d.to_markdown())
             lines.append("")
             lines.append("---")
             lines.append("")
-        
+
         return "\n".join(lines)
-    
+
     def export_json(self) -> str:
         """Export all decisions as JSON."""
         decisions = sorted(self._cache.values(), key=lambda d: d.timestamp, reverse=True)

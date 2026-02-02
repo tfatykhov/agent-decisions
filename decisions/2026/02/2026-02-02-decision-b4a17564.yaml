@@ -1,0 +1,19 @@
+id: b4a17564
+timestamp: '2026-02-02T00:52:42.005935'
+summary: gRPC health check with Ping auth exemption
+confidence: 0.9
+category: architecture
+stakes: medium
+context: null
+alternatives: []
+review_date: '2026-02-16T00:52:42.005971'
+status: pending
+active_context: []
+related_decisions: []
+mental_state: null
+teaching_notes: null
+reasons: []
+outcome: null
+actual_result: null
+lessons: null
+reviewed_at: null

@@ -3,8 +3,6 @@ Command-line interface for agent-decisions.
 """
 
 import re
-from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 import click
@@ -18,6 +16,7 @@ from .models import MentalState, Outcome, ReasonType, Stakes
 PLOTS_AVAILABLE = False
 try:
     import matplotlib  # noqa: F401
+
     from . import plots
     PLOTS_AVAILABLE = True
 except ImportError:
@@ -363,13 +362,77 @@ def serve(ctx: click.Context, host: str, port: int, debug: bool) -> None:
         raise SystemExit(1)
 
     journal_path = ctx.obj["journal"].directory
-    console.print(f"[green]Starting web dashboard...[/green]")
+    console.print("[green]Starting web dashboard...[/green]")
     console.print(f"  URL: http://{host}:{port}")
     console.print(f"  Journal: {journal_path}")
     console.print("  Press Ctrl+C to stop")
     console.print()
 
     run_server(journal_path=journal_path, host=host, port=port, debug=debug)
+
+
+@main.command()
+@click.option("--fix", is_flag=True, help="Show suggestions for fixing low diversity")
+@click.pass_context
+def validate(ctx: click.Context, fix: bool) -> None:
+    """Validate decisions for reason diversity.
+
+    Checks all pending decisions for low reason diversity (< 50%).
+    Decisions with correlated reasons (all same type) are fragile
+    even when they feel well-supported.
+
+    Inspired by noxious6's insight on Moltbook.
+    """
+    journal: Journal = ctx.obj["journal"]
+    decisions = journal.list_pending()
+
+    if not decisions:
+        console.print("[dim]No pending decisions found.[/dim]")
+        return
+
+    low_diversity = []
+    for d in decisions:
+        if len(d.reasons) >= 2 and not d.has_diverse_reasons:
+            low_diversity.append(d)
+
+    if not low_diversity:
+        console.print(
+            f"[green]✓[/green] All {len(decisions)} pending decisions "
+            "have diverse reasoning."
+        )
+        return
+
+    console.print(
+        f"[yellow]⚠️  {len(low_diversity)} decision(s) with "
+        "low reason diversity:[/yellow]\n"
+    )
+
+    for d in low_diversity:
+        console.print(f"[bold]{d.id}[/bold]: {d.summary[:50]}")
+        console.print(f"  Confidence: {d.confidence:.0%}")
+        console.print(f"  Diversity: {d.reason_diversity_score:.0%}")
+        console.print(f"  Reasons ({len(d.reasons)}):")
+        for r in d.reasons:
+            text = r.text[:40] + ("..." if len(r.text) > 40 else "")
+            console.print(f"    - [{r.reason_type.value}] {text}")
+
+        warning = d.get_reason_diversity_warning()
+        if warning:
+            console.print(f"  [yellow]{warning}[/yellow]")
+
+        if fix:
+            # Suggest reason types not yet used
+            used_types = set(r.reason_type for r in d.reasons)
+            unused_types = set(ReasonType) - used_types
+            suggestions = list(unused_types)[:3]
+            type_list = ", ".join(t.value for t in suggestions)
+            console.print(
+                f"  [cyan]Suggestions:[/cyan] Add a reason of type: {type_list}"
+            )
+
+        console.print()
+
+    console.print("[dim]Tip: Diverse reasoning types = more robust decisions[/dim]")
 
 
 if __name__ == "__main__":
