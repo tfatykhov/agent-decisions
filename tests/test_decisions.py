@@ -285,3 +285,39 @@ class TestBrierScore:
         brier = calculate_brier_score(decisions)
         # Only D1: (0.9 - 1)^2 = 0.01
         assert brier == pytest.approx(0.01)
+
+
+class TestCLIValidate:
+    """Tests for the validate CLI command."""
+    
+    def test_validate_finds_low_diversity(self):
+        """Validate identifies decisions with all same reason type."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            journal = Journal(tmpdir)
+            
+            # Create decision with low diversity
+            d = journal.log(summary="Correlated reasons", confidence=0.8)
+            decision = journal.get(d.id)
+            decision.add_reason(ReasonType.PATTERN, "Pattern 1", 0.7)
+            decision.add_reason(ReasonType.PATTERN, "Pattern 2", 0.8)
+            journal._save(decision)  # Re-save with reasons
+            
+            # Verify low diversity
+            reloaded = journal.get(d.id)
+            assert len(reloaded.reasons) == 2
+            assert reloaded.reason_diversity_score == 0.5
+    
+    def test_validate_passes_diverse_decisions(self):
+        """Validate passes decisions with diverse reasons."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            journal = Journal(tmpdir)
+            
+            d = journal.log(summary="Diverse reasons", confidence=0.8)
+            decision = journal.get(d.id)
+            decision.add_reason(ReasonType.PATTERN, "Pattern", 0.7)
+            decision.add_reason(ReasonType.ANALYSIS, "Analysis", 0.8)
+            decision.add_reason(ReasonType.EMPIRICAL, "Data", 0.9)
+            journal._save(decision)
+            
+            reloaded = journal.get(d.id)
+            assert reloaded.has_diverse_reasons is True
