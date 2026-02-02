@@ -56,8 +56,8 @@ A Click-based command-line interface.
 ```mermaid
 flowchart TD
     User[User / Agent]
-    CLI[CLI (decide)]
-    Web[Web Dashboard]
+    CLI["CLI (decide)"]
+    [Web[Web Dashboard]
     API[Python API]
     
     subgraph Core System
