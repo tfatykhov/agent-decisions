@@ -68,7 +68,7 @@ flowchart TD
     end
     
     subgraph Storage
-        Files[YAML Files (decisions/)]
+        Files["YAML Files (decisions/)"]
         Index[DECISIONS.md]
     end
     
