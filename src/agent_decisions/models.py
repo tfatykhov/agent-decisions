@@ -52,11 +52,11 @@ class MentalState(str, Enum):
 class ReasonType(str, Enum):
     """
     Type of reasoning used to support a decision.
-    
-    From Minsky Ch 18: "The more reasons we can find in favor of a 
+
+    From Minsky Ch 18: "The more reasons we can find in favor of a
     particular decision, the more confidence we can have in it."
-    
-    Tracking reason types helps calibration: which reasoning styles 
+
+    Tracking reason types helps calibration: which reasoning styles
     are most reliable for you?
     """
     PATTERN = "pattern"            # Similar to past experience that worked
@@ -73,7 +73,7 @@ class ReasonType(str, Enum):
 class Reason:
     """
     A single reason supporting a decision.
-    
+
     Multiple independent reasons = stronger argument (parallel bundles).
     """
     reason_type: ReasonType
@@ -105,7 +105,7 @@ class Reason:
 class Decision:
     """
     A single decision with metadata for tracking and review.
-    
+
     Core Attributes:
         id: Unique identifier for the decision
         timestamp: When the decision was made
@@ -117,13 +117,13 @@ class Decision:
         alternatives: Other options that were considered
         review_date: When to review the outcome
         status: Current status (pending/reviewed)
-    
+
     K-Line Attributes (Society of Mind):
         active_context: What tools/files/APIs were active when deciding
         related_decisions: IDs of related past decisions (K-line hierarchy)
         mental_state: How the decision was made (reconstruction hint)
         teaching_notes: What past-self wants future-self to know
-    
+
     Review Attributes:
         outcome: Result after review
         actual_result: What actually happened
@@ -189,7 +189,7 @@ class Decision:
     def outcome_binary(self) -> Optional[float]:
         """
         Convert outcome to binary for Brier score calculation.
-        
+
         Returns:
             1.0 for success, 0.0 for failure, None for partial/inconclusive
         """
@@ -221,7 +221,7 @@ class Decision:
     ) -> None:
         """
         Add a reason supporting this decision.
-        
+
         Multiple independent reasons = stronger argument (parallel bundles).
         """
         if isinstance(reason_type, str):
@@ -244,15 +244,15 @@ class Decision:
     def reason_diversity_score(self) -> float:
         """
         Calculate diversity of reasoning types (0.0 to 1.0).
-        
+
         From noxious6's insight: decisions that feel well-supported often have
         correlated reasons that fail together. True robustness comes from
         independent, diverse reasoning types.
-        
+
         Score = unique_types / total_reasons
         - 1.0 = every reason is a different type (maximum diversity)
         - 0.2 = 5 reasons all same type (weak, correlated)
-        
+
         Returns:
             Diversity score, or 0.0 if no reasons
         """
@@ -265,16 +265,19 @@ class Decision:
     def has_diverse_reasons(self) -> bool:
         """
         Check if decision has sufficiently diverse reasoning.
-        
-        Threshold: at least 50% of reasons should be different types.
-        A decision with 4 reasons should have at least 2 unique types.
+
+        Threshold: more than half of reasons should be different types.
+        A decision with 2 reasons of same type is NOT diverse.
+        A decision with 4 reasons needs at least 3 unique types.
         """
-        return self.reason_diversity_score >= 0.5
+        if len(self.reasons) < 2:
+            return True  # Single reason or none is trivially diverse
+        return self.reason_diversity_score > 0.5
 
     def get_reason_diversity_warning(self) -> Optional[str]:
         """
         Return a warning if reasons appear correlated.
-        
+
         Returns:
             Warning message if diversity is low, None otherwise
         """
@@ -282,7 +285,7 @@ class Decision:
             return None
 
         score = self.reason_diversity_score
-        if score < 0.5:
+        if score <= 0.5:
             types_used = self.reason_types_used
             return (
                 f"Low reason diversity ({score:.0%}). "
@@ -298,7 +301,7 @@ class Decision:
     ) -> None:
         """
         Record the outcome of this decision.
-        
+
         Args:
             outcome: What happened (success/failure/partial/inconclusive)
             actual_result: Description of what actually happened

@@ -88,7 +88,8 @@ class TestReasonDiversity:
     def test_no_reasons_returns_zero(self):
         d = Decision(summary="No reasons", confidence=0.8)
         assert d.reason_diversity_score == 0.0
-        assert d.has_diverse_reasons is False
+        # No reasons is trivially diverse (nothing to correlate)
+        assert d.has_diverse_reasons is True
 
     def test_single_reason_full_diversity(self):
         d = Decision(summary="One reason", confidence=0.8)
@@ -105,6 +106,17 @@ class TestReasonDiversity:
         # 1 unique type / 3 reasons = 0.33
         assert d.reason_diversity_score == pytest.approx(0.333, abs=0.01)
         assert d.has_diverse_reasons is False
+
+    def test_two_same_type_not_diverse(self):
+        """P1 fix: 2 reasons of same type should NOT be diverse."""
+        d = Decision(summary="Two correlated reasons", confidence=0.8)
+        d.add_reason(ReasonType.AUTHORITY, "Expert says so", 0.8)
+        d.add_reason(ReasonType.AUTHORITY, "Paper says so", 0.7)
+
+        # 1 unique type / 2 reasons = 0.5, but should NOT be diverse
+        assert d.reason_diversity_score == 0.5
+        assert d.has_diverse_reasons is False
+        assert d.get_reason_diversity_warning() is not None
 
     def test_diverse_reasons_high_score(self):
         d = Decision(summary="Independent reasons", confidence=0.8)

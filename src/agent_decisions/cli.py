@@ -413,7 +413,8 @@ def validate(ctx: click.Context, fix: bool) -> None:
         console.print(f"  Diversity: {d.reason_diversity_score:.0%}")
         console.print(f"  Reasons ({len(d.reasons)}):")
         for r in d.reasons:
-            console.print(f"    - [{r.reason_type.value}] {r.text[:40]}...")
+            text = r.text[:40] + ("..." if len(r.text) > 40 else "")
+            console.print(f"    - [{r.reason_type.value}] {text}")
 
         warning = d.get_reason_diversity_warning()
         if warning:
