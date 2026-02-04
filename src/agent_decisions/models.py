@@ -434,11 +434,10 @@ class Decision:
         if isinstance(data.get("reviewed_at"), str):
             data["reviewed_at"] = datetime.fromisoformat(data["reviewed_at"])
 
-        # Handle decision/summary alias (prefer decision, fallback to summary)
-        if "decision" in data and "summary" not in data:
+        # Handle decision/summary alias (prefer decision over summary)
+        if "decision" in data:
             data["summary"] = data.pop("decision")
-        elif "decision" in data:
-            data.pop("decision")  # Remove duplicate, keep summary
+        # If only summary exists, that's fine - it's the legacy format
 
         # Parse reasons
         if "reasons" in data and data["reasons"]:
