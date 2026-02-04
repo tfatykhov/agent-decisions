@@ -237,6 +237,16 @@ class Decision:
             self.mental_state = MentalState(self.mental_state)
 
     @property
+    def decision(self) -> str:
+        """Alias for summary - the actual decision made."""
+        return self.summary
+
+    @decision.setter
+    def decision(self, value: str) -> None:
+        """Set decision (alias for summary)."""
+        self.summary = value
+
+    @property
     def is_pending(self) -> bool:
         """Check if decision is pending review."""
         return self.status == Status.PENDING
@@ -387,7 +397,8 @@ class Decision:
         result = {
             "id": self.id,
             "timestamp": self.timestamp.isoformat(),
-            "summary": self.summary,
+            "decision": self.summary,  # Primary field name
+            "summary": self.summary,   # Backward compatibility alias
             "confidence": self.confidence,
             "category": self.category,
             "stakes": self.stakes.value,
@@ -423,6 +434,11 @@ class Decision:
         if isinstance(data.get("reviewed_at"), str):
             data["reviewed_at"] = datetime.fromisoformat(data["reviewed_at"])
 
+        # Handle decision/summary alias (prefer decision over summary)
+        if "decision" in data:
+            data["summary"] = data.pop("decision")
+        # If only summary exists, that's fine - it's the legacy format
+
         # Parse reasons
         if "reasons" in data and data["reasons"]:
             data["reasons"] = [Reason.from_dict(r) for r in data["reasons"]]
@@ -440,7 +456,9 @@ class Decision:
     def to_markdown(self) -> str:
         """Export decision as markdown."""
         lines = [
-            f"## {self.summary}",
+            f"## Decision",
+            "",
+            f"**{self.summary}**",
             "",
             f"- **ID:** `{self.id}`",
             f"- **Date:** {self.timestamp.strftime('%Y-%m-%d %H:%M')} UTC",

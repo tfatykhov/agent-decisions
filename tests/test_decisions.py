@@ -77,9 +77,60 @@ class TestDecision:
         d = Decision(summary="Markdown test", confidence=0.9, category="docs")
         md = d.to_markdown()
 
-        assert "## Markdown test" in md
+        assert "## Decision" in md
+        assert "**Markdown test**" in md
         assert "90%" in md
         assert "docs" in md
+
+    def test_decision_alias_property(self):
+        """Test that decision property is an alias for summary."""
+        d = Decision(summary="Test decision", confidence=0.8)
+        assert d.decision == "Test decision"
+        
+        d.decision = "Updated decision"
+        assert d.summary == "Updated decision"
+        assert d.decision == "Updated decision"
+
+    def test_decision_field_in_to_dict(self):
+        """Test that to_dict includes both decision and summary fields."""
+        d = Decision(summary="Test decision", confidence=0.8)
+        data = d.to_dict()
+        
+        assert "decision" in data
+        assert "summary" in data
+        assert data["decision"] == "Test decision"
+        assert data["summary"] == "Test decision"
+
+    def test_from_dict_with_decision_field(self):
+        """Test that from_dict accepts decision field."""
+        data = {
+            "decision": "Decision from new format",
+            "confidence": 0.85,
+        }
+        d = Decision.from_dict(data)
+        assert d.summary == "Decision from new format"
+        assert d.decision == "Decision from new format"
+
+    def test_from_dict_decision_overrides_summary(self):
+        """Test that decision field takes precedence over summary."""
+        data = {
+            "decision": "New decision value",
+            "summary": "Old summary value",
+            "confidence": 0.8,
+        }
+        d = Decision.from_dict(data)
+        # decision should win
+        assert d.summary == "New decision value"
+
+    def test_from_dict_legacy_summary_only(self):
+        """Test backward compatibility with summary-only files."""
+        data = {
+            "summary": "Legacy summary",
+            "confidence": 0.75,
+        }
+        d = Decision.from_dict(data)
+        assert d.summary == "Legacy summary"
+        assert d.decision == "Legacy summary"
 
 
 class TestReasonDiversity:
