@@ -77,7 +77,8 @@ class TestDecision:
         d = Decision(summary="Markdown test", confidence=0.9, category="docs")
         md = d.to_markdown()
 
-        assert "## Markdown test" in md
+        assert "## Decision" in md
+        assert "**Markdown test**" in md
         assert "90%" in md
         assert "docs" in md
 
