@@ -101,10 +101,11 @@ class Journal:
         alternatives: Optional[list[str]] = None,
         review_days: Optional[int] = None,
         active_context: Optional[list[str]] = None,
-        related_decisions: Optional[list[str]] = None,
+        related_decisions: Optional[list] = None,
         mental_state: Optional[MentalState | str] = None,
         teaching_notes: Optional[str] = None,
         reasons: Optional[list[dict]] = None,
+        pre_decision_protocol: Optional["PreDecisionProtocol"] = None,
     ) -> Decision:
         """
         Log a new decision.
@@ -118,14 +119,17 @@ class Journal:
             alternatives: Other options considered
             review_days: Days until review (sets review_date)
             active_context: K-lines - tools/files/APIs active when deciding
-            related_decisions: IDs of related past decisions
+            related_decisions: Related decisions (RelatedDecision objects or IDs)
             mental_state: How the decision was made (deliberate, reactive, etc.)
             teaching_notes: Notes for future self
             reasons: List of reasons supporting the decision (Minsky Ch 18)
+            pre_decision_protocol: Evidence that pre-decision workflow was followed
         
         Returns:
             The created Decision object
         """
+        from .models import PreDecisionProtocol, RelatedDecision
+        
         if isinstance(stakes, str):
             stakes = Stakes(stakes)
         if isinstance(mental_state, str):
@@ -141,6 +145,17 @@ class Journal:
                     strength=r.get("strength", 0.5),
                 ))
 
+        # Parse related_decisions (handle both RelatedDecision objects and strings)
+        parsed_related = []
+        if related_decisions:
+            for rd in related_decisions:
+                if isinstance(rd, RelatedDecision):
+                    parsed_related.append(rd)
+                elif isinstance(rd, str):
+                    parsed_related.append(RelatedDecision(id=rd))
+                elif isinstance(rd, dict):
+                    parsed_related.append(RelatedDecision.from_dict(rd))
+
         decision = Decision(
             summary=summary,
             confidence=confidence,
@@ -149,10 +164,11 @@ class Journal:
             context=context,
             alternatives=alternatives or [],
             active_context=active_context or [],
-            related_decisions=related_decisions or [],
+            related_decisions=parsed_related,
             mental_state=mental_state,
             teaching_notes=teaching_notes,
             reasons=parsed_reasons,
+            pre_decision_protocol=pre_decision_protocol,
         )
 
         if review_days:

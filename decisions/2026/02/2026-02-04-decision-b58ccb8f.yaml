@@ -1,0 +1,24 @@
+id: b58ccb8f
+timestamp: '2026-02-04T04:49:31.467314'
+summary: Keep decision directories separate - schema incompatibility between old decide.py
+  and agent-decisions. Index both with cognition-engines.
+confidence: 0.75
+category: architecture
+stakes: medium
+context: Attempted to consolidate but old files have incompatible schema (date vs
+  timestamp, klines vs active_context, different ReasonTypes)
+alternatives: []
+review_date: '2026-02-18T04:49:31.467350'
+status: pending
+active_context: []
+related_decisions: []
+mental_state: null
+teaching_notes: null
+reasons:
+- type: analysis
+  text: Indexing both directories is simpler than migration
+  strength: 0.5
+outcome: null
+actual_result: null
+lessons: null
+reviewed_at: null

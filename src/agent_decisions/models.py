@@ -70,6 +70,66 @@ class ReasonType(str, Enum):
 
 
 @dataclass
+class PreDecisionProtocol:
+    """
+    Tracks that the pre-decision workflow was followed.
+    
+    Evidence that the agent queried similar decisions and checked
+    guardrails before making this decision.
+    """
+    query_run: bool = False
+    similar_found: int = 0
+    guardrails_checked: bool = False
+    guardrails_passed: bool = False
+
+    def to_dict(self) -> dict:
+        return {
+            "query_run": self.query_run,
+            "similar_found": self.similar_found,
+            "guardrails_checked": self.guardrails_checked,
+            "guardrails_passed": self.guardrails_passed,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PreDecisionProtocol":
+        return cls(
+            query_run=data.get("query_run", False),
+            similar_found=data.get("similar_found", 0),
+            guardrails_checked=data.get("guardrails_checked", False),
+            guardrails_passed=data.get("guardrails_passed", False),
+        )
+
+
+@dataclass
+class RelatedDecision:
+    """
+    A reference to a related past decision with similarity distance.
+    """
+    id: str
+    title: Optional[str] = None
+    distance: Optional[float] = None
+
+    def to_dict(self) -> dict:
+        result = {"id": self.id}
+        if self.title:
+            result["title"] = self.title
+        if self.distance is not None:
+            result["distance"] = self.distance
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict | str) -> "RelatedDecision":
+        # Handle legacy format (just a string ID)
+        if isinstance(data, str):
+            return cls(id=data)
+        return cls(
+            id=data.get("id", ""),
+            title=data.get("title"),
+            distance=data.get("distance"),
+        )
+
+
+@dataclass
 class Reason:
     """
     A single reason supporting a decision.
@@ -145,9 +205,12 @@ class Decision:
 
     # K-Line fields (Society of Mind)
     active_context: list[str] = field(default_factory=list)
-    related_decisions: list[str] = field(default_factory=list)
+    related_decisions: list[RelatedDecision] = field(default_factory=list)
     mental_state: Optional[MentalState] = None
     teaching_notes: Optional[str] = None
+
+    # Pre-decision protocol tracking
+    pre_decision_protocol: Optional[PreDecisionProtocol] = None
 
     # Multiple reasons (Minsky Ch 18: strength from multitude)
     reasons: list[Reason] = field(default_factory=list)
@@ -203,10 +266,13 @@ class Decision:
         """Set review date to N days from now."""
         self.review_date = datetime.utcnow() + timedelta(days=days)
 
-    def link_decision(self, decision_id: str) -> None:
+    def link_decision(self, decision_id: str, title: Optional[str] = None, distance: Optional[float] = None) -> None:
         """Link this decision to a related past decision (K-line hierarchy)."""
-        if decision_id not in self.related_decisions:
-            self.related_decisions.append(decision_id)
+        # Check if already linked
+        for rd in self.related_decisions:
+            if rd.id == decision_id:
+                return
+        self.related_decisions.append(RelatedDecision(id=decision_id, title=title, distance=distance))
 
     def add_context(self, context_item: str) -> None:
         """Add an active context item (tool, file, API, etc.)."""
@@ -318,7 +384,7 @@ class Decision:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
+        result = {
             "id": self.id,
             "timestamp": self.timestamp.isoformat(),
             "summary": self.summary,
@@ -331,9 +397,11 @@ class Decision:
             "status": self.status.value,
             # K-Line fields
             "active_context": self.active_context,
-            "related_decisions": self.related_decisions,
+            "related_decisions": [rd.to_dict() for rd in self.related_decisions],
             "mental_state": self.mental_state.value if self.mental_state else None,
             "teaching_notes": self.teaching_notes,
+            # Pre-decision protocol
+            "pre_decision_protocol": self.pre_decision_protocol.to_dict() if self.pre_decision_protocol else None,
             # Reasons (Minsky Ch 18)
             "reasons": [r.to_dict() for r in self.reasons],
             # Review fields
@@ -342,6 +410,7 @@ class Decision:
             "lessons": self.lessons,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
         }
+        return result
 
     @classmethod
     def from_dict(cls, data: dict) -> "Decision":
@@ -357,6 +426,14 @@ class Decision:
         # Parse reasons
         if "reasons" in data and data["reasons"]:
             data["reasons"] = [Reason.from_dict(r) for r in data["reasons"]]
+
+        # Parse related_decisions (handle both legacy string list and new format)
+        if "related_decisions" in data and data["related_decisions"]:
+            data["related_decisions"] = [RelatedDecision.from_dict(rd) for rd in data["related_decisions"]]
+
+        # Parse pre_decision_protocol
+        if "pre_decision_protocol" in data and data["pre_decision_protocol"]:
+            data["pre_decision_protocol"] = PreDecisionProtocol.from_dict(data["pre_decision_protocol"])
 
         return cls(**data)
 
@@ -403,7 +480,18 @@ class Decision:
                 lines.append(f"- {alt}")
 
         if self.related_decisions:
-            lines.extend(["", f"**Related Decisions:** {', '.join(self.related_decisions)}"])
+            lines.extend(["", "**Related Decisions:**"])
+            for rd in self.related_decisions:
+                if rd.distance is not None:
+                    lines.append(f"- {rd.title or rd.id} (distance: {rd.distance:.3f})")
+                else:
+                    lines.append(f"- {rd.title or rd.id}")
+
+        if self.pre_decision_protocol:
+            pdp = self.pre_decision_protocol
+            lines.extend(["", "**Pre-Decision Protocol:**"])
+            lines.append(f"- Query run: {'✅' if pdp.query_run else '❌'} (found {pdp.similar_found})")
+            lines.append(f"- Guardrails: {'✅ passed' if pdp.guardrails_passed else '❌ blocked' if pdp.guardrails_checked else '⏭️ skipped'}")
 
         if self.review_date:
             lines.append(f"- **Review Date:** {self.review_date.strftime('%Y-%m-%d')}")

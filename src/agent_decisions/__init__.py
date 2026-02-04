@@ -10,16 +10,27 @@ Inspired by Minsky's Society of Mind:
 """
 
 from .journal import Journal
-from .models import Decision, MentalState, Outcome, Reason, ReasonType, Stakes
+from .models import (
+    Decision,
+    MentalState,
+    Outcome,
+    PreDecisionProtocol,
+    Reason,
+    ReasonType,
+    RelatedDecision,
+    Stakes,
+)
 from .stats import calculate_brier_score, calculate_stats
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __all__ = [
     "Decision",
     "MentalState",
     "Outcome",
+    "PreDecisionProtocol",
     "Reason",
     "ReasonType",
+    "RelatedDecision",
     "Stakes",
     "Journal",
     "calculate_brier_score",

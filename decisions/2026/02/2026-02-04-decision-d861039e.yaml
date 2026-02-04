@@ -1,0 +1,31 @@
+id: d861039e
+timestamp: '2026-02-04T05:02:17.766744'
+summary: Add pre_decision_protocol block and distance to related_decisions in agent-decisions
+  schema - captures evidence that workflow was followed
+confidence: 0.8
+category: architecture
+stakes: medium
+context: Should we add fields from cognition-engines format? Specifically pre_decision_protocol
+  (query_run, similar_found, guardrails_checked, guardrails_passed) and distance in
+  related_decisions
+alternatives: []
+review_date: '2026-02-11T05:02:17.766794'
+status: pending
+active_context: []
+related_decisions: []
+mental_state: null
+teaching_notes: null
+reasons:
+- type: analysis
+  text: pre_decision_protocol proves workflow compliance, creates audit trail
+  strength: 0.5
+- type: pattern
+  text: Similar to how git stores metadata about commits
+  strength: 0.5
+- type: constraint
+  text: Skip separate title field - summary already serves that purpose
+  strength: 0.5
+outcome: null
+actual_result: null
+lessons: null
+reviewed_at: null

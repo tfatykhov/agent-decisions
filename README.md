@@ -61,11 +61,22 @@ pip install -e .
 ### Command Line
 
 ```bash
-# Log a decision
+# Log a decision with pre-decision protocol tracking
 decide log "Deploy new feature to production" \
   --confidence 0.8 \
   --category engineering \
+  --stakes high \
+  --context "Should we deploy before the weekend?" \
+  --reason "analysis:Tests passing and rollback plan ready" \
+  --query-run --similar-found 3 \
+  --guardrails-checked --guardrails-passed \
   --review-in 7d
+
+# Simple decision (no pre-decision tracking)
+decide log "Use PostgreSQL for the new service" \
+  --confidence 0.85 \
+  --category architecture \
+  --review-in 14d
 
 # List all decisions
 decide list

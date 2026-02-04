@@ -62,10 +62,14 @@ def main(ctx: click.Context, directory: str) -> None:
 @click.option("--alternative", "-a", multiple=True, help="Alternative options considered")
 @click.option("--review-in", "-r", help="Review in N days/weeks/months (e.g., '7d', '2w', '1m')")
 @click.option("--active-context", "-k", multiple=True, help="Active context items (K-lines: tools, files, APIs)")
-@click.option("--related", multiple=True, help="Related decision IDs (K-line hierarchy)")
+@click.option("--related", multiple=True, help="Related decision IDs or 'id:title:distance' format")
 @click.option("--mental-state", "-m", type=click.Choice(["deliberate", "reactive", "exploratory", "habitual", "pressured"]), help="Mental state when deciding")
 @click.option("--teaching-notes", help="Notes for future self")
 @click.option("--reason", "-R", multiple=True, help="Reason supporting decision: 'type:text' or 'type:text:strength' (e.g., 'pattern:Similar to X which worked:0.8')")
+@click.option("--query-run/--no-query-run", default=False, help="Pre-decision: queried similar decisions")
+@click.option("--similar-found", type=int, default=0, help="Pre-decision: number of similar decisions found")
+@click.option("--guardrails-checked/--no-guardrails-checked", default=False, help="Pre-decision: checked guardrails")
+@click.option("--guardrails-passed/--no-guardrails-passed", default=False, help="Pre-decision: guardrails passed")
 @click.pass_context
 def log(
     ctx: click.Context,
@@ -81,8 +85,14 @@ def log(
     mental_state: Optional[str],
     teaching_notes: Optional[str],
     reason: tuple[str, ...],
+    query_run: bool,
+    similar_found: int,
+    guardrails_checked: bool,
+    guardrails_passed: bool,
 ) -> None:
     """Log a new decision."""
+    from .models import PreDecisionProtocol, RelatedDecision
+    
     journal: Journal = ctx.obj["journal"]
 
     # Parse reasons
@@ -103,6 +113,30 @@ def log(
                 valid_types = ", ".join([t.value for t in ReasonType])
                 console.print(f"[yellow]Warning: Unknown reason type '{rtype}'. Valid: {valid_types}[/yellow]")
 
+    # Parse related decisions (support both simple ID and id:title:distance format)
+    parsed_related = []
+    for rel in related:
+        parts = rel.split(":", 2)
+        if len(parts) == 3:
+            # Format: id:title:distance
+            parsed_related.append(RelatedDecision(id=parts[0], title=parts[1], distance=float(parts[2])))
+        elif len(parts) == 2:
+            # Format: id:title
+            parsed_related.append(RelatedDecision(id=parts[0], title=parts[1]))
+        else:
+            # Just ID
+            parsed_related.append(RelatedDecision(id=rel))
+
+    # Build pre-decision protocol if any flags set
+    pre_decision = None
+    if query_run or guardrails_checked:
+        pre_decision = PreDecisionProtocol(
+            query_run=query_run,
+            similar_found=similar_found,
+            guardrails_checked=guardrails_checked,
+            guardrails_passed=guardrails_passed,
+        )
+
     review_days = parse_duration(review_in) if review_in else None
 
     decision = journal.log(
@@ -114,15 +148,18 @@ def log(
         alternatives=list(alternative),
         review_days=review_days,
         active_context=list(active_context),
-        related_decisions=list(related),
+        related_decisions=parsed_related,
         mental_state=MentalState(mental_state) if mental_state else None,
         teaching_notes=teaching_notes,
         reasons=parsed_reasons,
+        pre_decision_protocol=pre_decision,
     )
 
     console.print(f"[green]✓[/green] Decision logged: [bold]{decision.id}[/bold]")
     console.print(f"  Summary: {decision.summary}")
     console.print(f"  Confidence: {decision.confidence:.0%}")
+    if pre_decision:
+        console.print(f"  Pre-decision: query={'✅' if pre_decision.query_run else '❌'} guardrails={'✅' if pre_decision.guardrails_passed else '❌'}")
     if decision.review_date:
         console.print(f"  Review on: {decision.review_date.strftime('%Y-%m-%d')}")
 

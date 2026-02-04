@@ -1,0 +1,30 @@
+id: 090beb7d
+timestamp: '2026-02-04T05:05:55.608737'
+summary: Test decision with pre-decision protocol
+confidence: 0.85
+category: process
+stakes: low
+context: Testing new fields
+alternatives: []
+review_date: '2026-02-05T05:05:55.608773'
+status: pending
+active_context: []
+related_decisions:
+- id: abc123
+  title: Similar decision
+  distance: 0.75
+mental_state: null
+teaching_notes: null
+pre_decision_protocol:
+  query_run: true
+  similar_found: 3
+  guardrails_checked: true
+  guardrails_passed: true
+reasons:
+- type: empirical
+  text: Testing the implementation
+  strength: 0.5
+outcome: null
+actual_result: null
+lessons: null
+reviewed_at: null
