@@ -38,3 +38,4 @@ htmlcov/
 
 # Distribution
 .ruff_cache/
+decisions/
